@@ -24,6 +24,7 @@ NotePadAudioProcessor::NotePadAudioProcessor()
 {
 }
 
+
 NotePadAudioProcessor::~NotePadAudioProcessor()
 {
 }
@@ -111,7 +112,14 @@ bool NotePadAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
     return true;
   #else
     // This is the place where you check if the layout is supported.
-    if (layouts.getMainOutputChannelSet().size() != 0) // if there are any number of output channels then allow the plugin
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo()
+        && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::createLCR().size()
+        && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::quadraphonic().size()
+        && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create5point0().size()
+        && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create5point1().size()
+        && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create7point0().size()
+        && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create7point1().size())
         return false;
 
     return true;
@@ -145,7 +153,7 @@ bool NotePadAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* NotePadAudioProcessor::createEditor()
 {
-    NotePadAudioProcessorEditor* editor =  new NotePadAudioProcessorEditor (*this);
+    editor =  new NotePadAudioProcessorEditor (*this);
     return editor;
 }
 
@@ -157,7 +165,7 @@ void NotePadAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // as intermediaries to make it easy to save and load complex data.
     
     // Save sessionText as raw string
-    juce::MemoryOutputStream(destData,true).writeString(NotePadAudioProcessorEditor::m1TextEditor->getText());
+    juce::MemoryOutputStream(destData,true).writeString(editor->m1TextEditor->getText());
 }
 
 void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -166,7 +174,7 @@ void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInByt
     // whose contents will have been created by the getStateInformation() call.
 
     // Load sessionText as raw string
-    NotePadAudioProcessorEditor::m1TextEditor->setText(juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString());
+    editor->m1TextEditor->setText(juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString());
 }
 
 //==============================================================================

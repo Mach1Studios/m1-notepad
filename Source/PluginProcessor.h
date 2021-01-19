@@ -10,6 +10,8 @@
 
 #include <JuceHeader.h>
 
+class NotePadAudioProcessorEditor;
+
 //==============================================================================
 /**
 */
@@ -34,7 +36,7 @@ public:
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
-    juce::AudioProcessorEditor editor;
+    NotePadAudioProcessorEditor* editor = nullptr;
     bool hasEditor() const override;
 
     //==============================================================================
