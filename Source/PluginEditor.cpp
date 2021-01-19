@@ -17,18 +17,18 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     // editor's size to whatever you need it to be.
     setSize (800, 512);
     
-    juce__textEditor.reset (new juce::TextEditor ("new text editor"));
-    addAndMakeVisible (juce__textEditor.get());
-    juce__textEditor->setMultiLine (true);
-    juce__textEditor->setReturnKeyStartsNewLine (true);
-    juce__textEditor->setReadOnly (false);
-    juce__textEditor->setScrollbarsShown (true);
-    juce__textEditor->setCaretVisible (true);
-    juce__textEditor->setPopupMenuEnabled (true);
-    juce__textEditor->setTextToShowWhenEmpty ("Keep session notes here...", juce::Colours::white);
-    juce__textEditor->focusGained(focusChangedByMouseClick);
-    juce__textEditor->setText(juce::String());
-    juce__textEditor->setBounds (0, 0, 800, 512);
+    m1TextEditor.reset (new juce::TextEditor ("new text editor"));
+    addAndMakeVisible (m1TextEditor.get());
+    m1TextEditor->setMultiLine (true);
+    m1TextEditor->setReturnKeyStartsNewLine (true);
+    m1TextEditor->setReadOnly (false);
+    m1TextEditor->setScrollbarsShown (true);
+    m1TextEditor->setCaretVisible (true);
+    m1TextEditor->setPopupMenuEnabled (true);
+    m1TextEditor->setTextToShowWhenEmpty ("Keep session notes here...", juce::Colours::white);
+    m1TextEditor->focusGained(focusChangedByMouseClick);
+    m1TextEditor->setText(juce::String());
+    m1TextEditor->setBounds (0, 0, 800, 512);
     
     m1logo = juce::ImageCache::getFromMemory(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
 
@@ -36,7 +36,7 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
 
 NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
 {
-    juce__textEditor = nullptr;
+    m1TextEditor = nullptr;
 }
 
 //==============================================================================
@@ -60,5 +60,5 @@ void NotePadAudioProcessorEditor::resized()
  void NotePadAudioProcessorEditor::textEditorTextChanged (juce::TextEditor &editor)
  {
      
-     //NotePadAudioProcessor::text = juce__textEditor->getText();
+     
  }

@@ -25,12 +25,13 @@ public:
     void resized() override;
     
     void textEditorTextChanged (juce::TextEditor &editor);
+    std::unique_ptr<juce::TextEditor> m1TextEditor;
+    juce::String eSessionText;
 
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     NotePadAudioProcessor& audioProcessor;
-    std::unique_ptr<juce::TextEditor> juce__textEditor;
     juce::Image m1logo;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NotePadAudioProcessorEditor)

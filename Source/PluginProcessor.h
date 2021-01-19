@@ -20,7 +20,7 @@ public:
     NotePadAudioProcessor();
     ~NotePadAudioProcessor() override;
 
-    juce::String getTextValue (const juce::StringRef paramID);
+    juce::String pSessionText;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -34,6 +34,7 @@ public:
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
+    juce::AudioProcessorEditor editor;
     bool hasEditor() const override;
 
     //==============================================================================
@@ -58,6 +59,4 @@ public:
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NotePadAudioProcessor)
-    
-    juce::AudioProcessorValueTreeState parms;
 };

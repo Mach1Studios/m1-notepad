@@ -19,54 +19,13 @@ NotePadAudioProcessor::NotePadAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       ),
+                       )
 #endif
-parms (*this, nullptr)
 {
-    parms.createAndAddParameter("myAutomatedText",
-                                "Text",
-                                juce::String(),
-                                juce::NormalisableRange<float> (0.0f, 1.0f),
-                                1.0f,
-                                [](float value)
-                                {
-                                    juce::String text;
-                                    for (int i=0; i<32; ++i) {
-                                        long column = static_cast<long> (value * pow (100.0, i)) % 100;
-                                        if (column > 0 && column < 95)
-                                            text.append (juce::String::charToString (column + 32), 1);
-                                    }
-                                    return text;
-                                },
-                                [](const juce::String& text)
-                                {
-                                    float value = 0.0;
-                                    for (int i=0; i<text.length(); ++i) {
-                                        value += (text [i] - 32) / pow (100.0, i+1);
-                                    }
-                                    return value;
-                                });
-    
-    parms.state = juce::ValueTree ("TextPlugin");
 }
 
 NotePadAudioProcessor::~NotePadAudioProcessor()
 {
-}
-
-juce::String NotePadAudioProcessor::getTextValue (const juce::StringRef paramID)
-{
-    if (auto parameter = parms.getParameter(paramID)) {
-        float value = parameter->getValue();
-        juce::String text;
-        for (int i=0; i<32; ++i) {
-            long column = static_cast<long> (value * pow (100.0, i)) % 100;
-            if (column > 0 && column < 95)
-                text.append (juce::String::charToString (column + 32), 1);
-        }
-        return text;
-    }
-    return "";
 }
 
 //==============================================================================
@@ -152,16 +111,8 @@ bool NotePadAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
     return true;
   #else
     // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+    if (layouts.getMainOutputChannelSet().size() != 0) // if there are any number of output channels then allow the plugin
         return false;
-
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-   #endif
 
     return true;
   #endif
@@ -182,6 +133,8 @@ void NotePadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
+    
+    //TODO: bypass processing
 }
 
 //==============================================================================
@@ -193,7 +146,6 @@ bool NotePadAudioProcessor::hasEditor() const
 juce::AudioProcessorEditor* NotePadAudioProcessor::createEditor()
 {
     NotePadAudioProcessorEditor* editor =  new NotePadAudioProcessorEditor (*this);
-    parms.addParameterListener ("myAutomatedText", editor);
     return editor;
 }
 
@@ -203,19 +155,18 @@ void NotePadAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
-    juce::MemoryOutputStream stream(destData, false);
-    parms.state.writeToStream (stream);
+    
+    // Save sessionText as raw string
+    juce::MemoryOutputStream(destData,true).writeString(NotePadAudioProcessorEditor::m1TextEditor->getText());
 }
 
 void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
-    juce::ValueTree tree = juce::ValueTree::readFromData (data, sizeInBytes);
-    
-    if (tree.isValid()) {
-        parms.state = tree;
-    }
+
+    // Load sessionText as raw string
+    NotePadAudioProcessorEditor::m1TextEditor->setText(juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString());
 }
 
 //==============================================================================
