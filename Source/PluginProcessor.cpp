@@ -123,9 +123,11 @@ bool NotePadAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
         && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create7point1().size())
         return false;
     
-#if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
+#if ! JucePlugin_Build_Standalone
+    #if ! JucePlugin_IsSynth
+        if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
+            return false;
+    #endif
 #endif
 
 
@@ -150,8 +152,6 @@ void NotePadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
         buffer.clear (i, 0, buffer.getNumSamples());
     
     //TODO: bypass processing
-    
-    pSessionText = treeState.state.getProperty("SessionText");
 }
 
 //==============================================================================
