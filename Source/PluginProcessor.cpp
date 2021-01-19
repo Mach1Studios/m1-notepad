@@ -19,11 +19,12 @@ NotePadAudioProcessor::NotePadAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
+treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce::AudioParameterFloat>("gain", "Gain", -48.0f, 0.0f, -15.0f) })
 #endif
 {
+    treeState.state.getOrCreateChildWithName("SessionText", nullptr);
 }
-
 
 NotePadAudioProcessor::~NotePadAudioProcessor()
 {
@@ -121,6 +122,12 @@ bool NotePadAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
         && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create7point0().size()
         && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create7point1().size())
         return false;
+    
+#if ! JucePlugin_IsSynth
+    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
+        return false;
+#endif
+
 
     return true;
   #endif
@@ -143,6 +150,8 @@ void NotePadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
         buffer.clear (i, 0, buffer.getNumSamples());
     
     //TODO: bypass processing
+    
+    pSessionText = treeState.state.getProperty("SessionText");
 }
 
 //==============================================================================
@@ -153,7 +162,7 @@ bool NotePadAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* NotePadAudioProcessor::createEditor()
 {
-    editor =  new NotePadAudioProcessorEditor (*this);
+    NotePadAudioProcessorEditor* editor =  new NotePadAudioProcessorEditor (*this);
     return editor;
 }
 
@@ -165,7 +174,7 @@ void NotePadAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // as intermediaries to make it easy to save and load complex data.
     
     // Save sessionText as raw string
-    juce::MemoryOutputStream(destData,true).writeString(editor->m1TextEditor->getText());
+    juce::MemoryOutputStream(destData,true).writeString(treeState.state.getProperty("SessionText"));
 }
 
 void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -174,7 +183,7 @@ void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInByt
     // whose contents will have been created by the getStateInformation() call.
 
     // Load sessionText as raw string
-    editor->m1TextEditor->setText(juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString());
+    treeState.state.setProperty("SessionText", juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString(), nullptr);
 }
 
 //==============================================================================

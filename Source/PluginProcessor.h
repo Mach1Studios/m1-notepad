@@ -10,20 +10,36 @@
 
 #include <JuceHeader.h>
 
-class NotePadAudioProcessorEditor;
-
 //==============================================================================
 /**
 */
+
+//class ValueTreeItem  : public juce::TreeViewItem,
+//private juce::ValueTree::Listener
+//{
+//public:
+//    ValueTreeItem (const juce::ValueTree& v, juce::UndoManager& um)
+//        : tree (v), undoManager (um)
+//    {
+//        tree.addListener (this);
+//    }
+//
+//private:
+//    juce::ValueTree tree;
+//    juce::UndoManager& undoManager;
+//
+//    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ValueTreeItem)
+//};
+
+//==============================================================================
+
 class NotePadAudioProcessor  : public juce::AudioProcessor
 {
 public:
     //==============================================================================
     NotePadAudioProcessor();
     ~NotePadAudioProcessor() override;
-
-    juce::String pSessionText;
-
+    
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -36,7 +52,6 @@ public:
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
-    NotePadAudioProcessorEditor* editor = nullptr;
     bool hasEditor() const override;
 
     //==============================================================================
@@ -57,8 +72,20 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+    
+    juce::AudioProcessorValueTreeState treeState;
+    juce::String pSessionText;
 
 private:
     //==============================================================================
+//    juce::TreeView tree;
+//    std::unique_ptr<ValueTreeItem> rootItem;
+//    juce::UndoManager undoManager;
+//
+//    void timerCallback()
+//    {
+//        undoManager.beginNewTransaction();
+//    }
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NotePadAudioProcessor)
 };

@@ -26,12 +26,11 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     m1TextEditor->setCaretVisible (true);
     m1TextEditor->setPopupMenuEnabled (true);
     m1TextEditor->setTextToShowWhenEmpty ("Keep session notes here...", juce::Colours::white);
-    m1TextEditor->focusGained(focusChangedByMouseClick);
-    m1TextEditor->setText(juce::String());
+    m1TextEditor->setText(audioProcessor.treeState.state.getProperty("SessionText"));
     m1TextEditor->setBounds (0, 0, 800, 512);
-    
-    m1logo = juce::ImageCache::getFromMemory(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+    m1TextEditor->addListener(this);
 
+    m1logo = juce::ImageCache::getFromMemory(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
 }
 
 NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
@@ -59,6 +58,5 @@ void NotePadAudioProcessorEditor::resized()
 
  void NotePadAudioProcessorEditor::textEditorTextChanged (juce::TextEditor &editor)
  {
-     
-     
+     audioProcessor.treeState.state.setProperty("SessionText", editor.getText(), nullptr);
  }

@@ -14,7 +14,7 @@
 //==============================================================================
 /**
 */
-class NotePadAudioProcessorEditor  : public juce::AudioProcessorEditor
+class NotePadAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::TextEditor::Listener
 {
 public:
     NotePadAudioProcessorEditor (NotePadAudioProcessor&);
@@ -24,9 +24,8 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     
-    void textEditorTextChanged (juce::TextEditor &editor);
+    void textEditorTextChanged (juce::TextEditor &editor) override;
     std::unique_ptr<juce::TextEditor> m1TextEditor;
-    juce::String eSessionText;
 
 private:
     // This reference is provided as a quick way for your editor to
