@@ -5,7 +5,8 @@
               bundleIdentifier="com.mach1.notepad" companyCopyright="Mach1"
               companyName="Mach1" companyEmail="dylan@mach1.tech" pluginCharacteristicsValue="pluginAAXDisableMultiMono,pluginEditorRequiresKeys,pluginRTASDisableMultiMono"
               pluginVST3Category="Tools" pluginRTASCategory="0" pluginAAXCategory="0"
-              pluginVSTCategory="kPlugCategUnknown" companyWebsite="www.mach1.tech">
+              pluginVSTCategory="kPlugCategUnknown" companyWebsite="www.mach1.tech"
+              version="1.0.1">
   <MAINGROUP id="nn9gaT" name="M1-NotePad">
     <FILE id="t4NG7P" name="mach1logo.png" compile="0" resource="1" file="Resources/mach1logo.png"/>
     <GROUP id="{778A454C-BF2D-0624-5BF8-884A51D8EA65}" name="Source">
