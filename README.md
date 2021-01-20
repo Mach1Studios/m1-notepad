@@ -10,6 +10,7 @@ NotePad based plugin for track/session notes, very basic and just passes through
   
 ### Notes
 - Does not include an UndoManager or system, to avoid flooding your project/DAW with undo steps for text changes, lets keep undo for audio changes only!
+- Reaper will block some keystrokes, if you are using Reaper please `Open the FX window and from FX menu enable “send all keyboard input to plugin”`
 
 ### TODO
 - ~resize-able window (on supported DAWS)~
