@@ -23,6 +23,7 @@ NotePadAudioProcessor::NotePadAudioProcessor()
 treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce::AudioParameterFloat>("gain", "Gain", -48.0f, 0.0f, -15.0f) })
 #endif
 {
+    // Create a treestate child property to store the text as a giant string
     treeState.state.getOrCreateChildWithName("SessionText", nullptr);
 }
 
@@ -95,14 +96,10 @@ void NotePadAudioProcessor::changeProgramName (int index, const juce::String& ne
 //==============================================================================
 void NotePadAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
 }
 
 void NotePadAudioProcessor::releaseResources()
 {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -125,7 +122,7 @@ bool NotePadAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
     
 #if ! JucePlugin_Build_Standalone
     #if ! JucePlugin_IsSynth
-        if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
+        if (layouts.getMainOutputChannelSet().size() != layouts.getMainInputChannelSet().size())
             return false;
     #endif
 #endif
@@ -157,7 +154,7 @@ void NotePadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
 //==============================================================================
 bool NotePadAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return true;
 }
 
 juce::AudioProcessorEditor* NotePadAudioProcessor::createEditor()
