@@ -7,6 +7,10 @@ NotePad based plugin for track/session notes, very basic and just passes through
   - VST `/Library/Audio/Plug-Ins/VST`
   - VST3 `/Library/Audio/Plug-Ins/VST3`
   - AAX `/Library/Application Support/Avid/Audio/Plug-Ins`
+  
+### Notes
+- Does not include an UndoManager or system, to avoid flooding your project/DAW with undo steps for text changes, lets keep undo for audio changes only!
 
 ### TODO
-- make some todo items
+- ~resize-able window (on supported DAWS)~
+- AAX resize function/button?
