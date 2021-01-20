@@ -15,3 +15,5 @@ NotePad based plugin for track/session notes, very basic and just passes through
 ### TODO
 - ~resize-able window (on supported DAWS)~
 - AAX resize function/button?
+- Strikethrough
+- List Maker
