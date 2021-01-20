@@ -110,6 +110,10 @@ bool NotePadAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
     return true;
   #else
     // This is the place where you check if the layout is supported.
+    if (layouts.getMainInputChannelSet()  == juce::AudioChannelSet::disabled()
+     || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
+        return false;
+ 
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
         && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo()
         && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::createLCR().size()
@@ -119,16 +123,8 @@ bool NotePadAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
         && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create7point0().size()
         && layouts.getMainOutputChannelSet().size() != juce::AudioChannelSet::create7point1().size())
         return false;
-    
-#if ! JucePlugin_Build_Standalone
-    #if ! JucePlugin_IsSynth
-        if (layouts.getMainOutputChannelSet().size() != layouts.getMainInputChannelSet().size())
-            return false;
-    #endif
-#endif
 
-
-    return true;
+    return layouts.getMainInputChannelSet() == layouts.getMainOutputChannelSet();
   #endif
 }
 #endif
