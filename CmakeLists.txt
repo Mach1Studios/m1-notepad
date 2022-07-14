@@ -57,4 +57,3 @@ foreach(FORMAT ${FORMATS})
     get_target_property(ARTEFACTS_DIR M1-Notepad_${FORMAT} LIBRARY_OUTPUT_DIRECTORY)
     add_custom_command(TARGET M1-Notepad_${FORMAT} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ARTEFACTS_DIR} ${COPY_FOLDER})
 endforeach()
-Footer

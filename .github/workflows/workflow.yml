@@ -37,7 +37,7 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       env:
-        DIST_DIR: ${{runner.workspace}}/build/Release
+        DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
         INSTALL_DIR: /Library/Audio/Plug-Ins
         BUNDLE_ID: ${{ env.BUNDLE_ID }}
         VERSION: ${{ env.VERSION }}
@@ -54,9 +54,9 @@ jobs:
         security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
         security import installer.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/productbuild
         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${RANDOM_PWD} build.keychain
-        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-NotePad/Release/AU/M1-NotePad.component -v
-        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-NotePad/Release/VST3/M1-NotePad.vst3 -v
-        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-NotePad/Release/AAX/M1-NotePad.aaxplugin -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-NotePad/M1-Notepad_artefacts/Release/AU/M1-NotePad.component -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-NotePad/M1-Notepad_artefacts/Release/VST3/M1-NotePad.vst3 -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-NotePad/M1-Notepad_artefacts/Release/AAX/M1-NotePad.aaxplugin -v
         pkgbuild --identifier ${BUNDLE_ID}.au --version ${VERSION} --component ${DIST_DIR}/AU/M1-NotePad.component \
         --install-location "${INSTALL_DIR}/Components" ${DIST_DIR}/M1-NotePad.au.pkg 
         pkgbuild --identifier ${BUNDLE_ID}.vst3 --version ${VERSION} --component ${DIST_DIR}/VST3/M1-NotePad.vst3 \
@@ -73,7 +73,7 @@ jobs:
       if: runner.os == 'MacOS'
       uses: devbotsxyz/xcode-notarize@v1
       with:
-        product-path: "${{runner.workspace}}/build/Release/M1-NotePad.pkg"
+        product-path: "${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-NotePad.pkg"
         appstore-connect-username: ${{ secrets.MACOS_NOTARIZE_USER }} 
         appstore-connect-password: ${{ secrets.MACOS_NOTARIZE_PWD }} 
         primary-bundle-id: ${{ env.BUNDLE_ID }}
@@ -82,13 +82,13 @@ jobs:
       if: runner.os == 'MacOS'
       uses: devbotsxyz/xcode-staple@v1
       with:
-        product-path: "${{runner.workspace}}/build/Release/M1-NotePad.pkg"
+        product-path: "${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-NotePad.pkg"
 
     - name: InnoSetup Installer (Windows)
       if: runner.os == 'Windows'
       working-directory: ${{runner.workspace}}/build
       run: |
-        "%programfiles(x86)%\Inno Setup 6\iscc.exe" /DBuildDir="${{runner.workspace}}\build\Release" "${{runner.workspace}}\M1-NotePad\Resources\InnoSetup.iss"
+        "%programfiles(x86)%\Inno Setup 6\iscc.exe" /DBuildDir="${{runner.workspace}}\build\M1-Notepad_artefacts\Release" "${{runner.workspace}}\M1-NotePad\Resources\InnoSetup.iss"
       shell: cmd
 
     - name: 'Upload Artifact (MacOS)'
@@ -96,7 +96,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: M1-NotePad (MacOS)
-        path: ${{runner.workspace}}/build/Release/M1-NotePad.pkg
+        path: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-NotePad.pkg
         if-no-files-found: error
 
     - name: 'Upload Artifact (Windows)'
@@ -104,5 +104,5 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: M1-NotePad (Windows)
-        path: ${{runner.workspace}}\build\Release\Output\M1-NotePad_WIN.exe
+        path: ${{runner.workspace}}\build\M1-Notepad_artefacts\Release\Output\M1-NotePad_WIN.exe
         if-no-files-found: error
