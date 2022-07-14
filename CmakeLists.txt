@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.13.0)
-project(M1-Notepad VERSION 1.1.0)
+project(M1-Notepad VERSION 1.0.1)
 add_subdirectory(JUCE)
 
-if(EXISTS ./JUCE_deps)
-    juce_set_aax_sdk_path(JUCE_deps/AAX_SDK_2p3p2)
-    #juce_set_vst2_sdk_path(JUCE_deps/VST_SDK_vst2/VST2_SDK)
+if(IS_DIRECTORY ${PROJECT_SOURCE_DIR}/JUCE_deps)
+    set(AAX_PATH "JUCE_deps/AAX_SDK_2p3p2")
+    set(VST2_PATH "JUCE_deps/VST_SDK_vst2/VST2_SDK")
+    message("-- JUCE Dependencies Found: ${PROJECT_SOURCE_DIR}/JUCE_deps")
 else()
-    message("Did not find additional JUCE deps submodule. Please add the appropriate SDKs manually.")
+    message("Warning: Did not find additional JUCE deps submodule. Please add the appropriate SDKs manually.")
 endif()
 
 # check which formats we want to build
@@ -16,10 +17,10 @@ if (AAX_PATH)
     juce_set_aax_sdk_path(${AAX_PATH})
 endif()
 
-if (VST2_PATH)
-    list(APPEND FORMATS "VST2")
-    juce_set_vst2_sdk_path(${VST2_PATH})
-endif()
+# if (VST2_PATH)
+#     list(APPEND FORMATS "VST2")
+#     juce_set_vst2_sdk_path(${VST2_PATH})
+# endif()
 
 if (APPLE)
     list(APPEND FORMATS "AU")
