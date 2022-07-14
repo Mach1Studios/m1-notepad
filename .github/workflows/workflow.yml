@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy: 
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [macos-latest, windows-2016]
 
     steps:
     - uses: actions/checkout@v2
@@ -70,6 +70,7 @@ jobs:
         --package "${DIST_DIR}/M1-NotePad.aaxplugin.pkg" \
         distribution.xml
         productbuild --sign "Developer ID Installer" --distribution distribution.xml --package-path ${DIST_DIR} ${DIST_DIR}/M1-NotePad.pkg
+    
     - name: Notarize (macos)
       if: runner.os == 'MacOS'
       uses: devbotsxyz/xcode-notarize@v1
