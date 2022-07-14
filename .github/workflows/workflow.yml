@@ -23,10 +23,17 @@ jobs:
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
 
-    - name: Configure CMake
+    - name: Configure CMake (macos)
+      if: runner.os == 'MacOS'
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -A x64 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
@@ -97,7 +104,7 @@ jobs:
       if: runner.os == 'MacOS'
       uses: actions/upload-artifact@v2
       with:
-        name: M1-NotePad (MacOS)
+        name: M1-Notepad (MacOS)
         path: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-NotePad.pkg
         if-no-files-found: error
 
@@ -105,6 +112,6 @@ jobs:
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v2
       with:
-        name: M1-NotePad (Windows)
+        name: M1-Notepad (Windows)
         path: ${{runner.workspace}}\build\M1-Notepad_artefacts\Release\Output\M1-NotePad_WIN.exe
         if-no-files-found: error
