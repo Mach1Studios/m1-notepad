@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.13.0)
 project(M1-Notepad VERSION 1.1.0)
 add_subdirectory(JUCE)
 
+if(EXISTS ./JUCE_deps)
+    juce_set_aax_sdk_path(JUCE_deps/AAX_SDK_2p3p2)
+    #juce_set_vst2_sdk_path(JUCE_deps/VST_SDK_vst2/VST2_SDK)
+else()
+    message("Did not find additional JUCE deps submodule. Please add the appropriate SDKs manually.")
+endif()
+
 # check which formats we want to build
 set(FORMATS "VST3")
 if (AAX_PATH)
