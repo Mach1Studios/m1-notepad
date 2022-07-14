@@ -62,9 +62,9 @@ jobs:
         security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
         security import installer.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/productbuild
         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${RANDOM_PWD} build.keychain
-        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-Notepad/M1-Notepad_artefacts/Release/AU/M1-Notepad.component -v
-        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-Notepad/M1-Notepad_artefacts/Release/VST3/M1-Notepad.vst3 -v
-        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" M1-Notepad/M1-Notepad_artefacts/Release/AAX/M1-Notepad.aaxplugin -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" ${DIST_DIR}/AU/M1-Notepad.component -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" ${DIST_DIR}/VST3/M1-Notepad.vst3 -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" ${DIST_DIR}/AAX/M1-Notepad.aaxplugin -v
         pkgbuild --identifier ${BUNDLE_ID}.au --version ${VERSION} --component ${DIST_DIR}/AU/M1-Notepad.component \
         --install-location "${INSTALL_DIR}/Components" ${DIST_DIR}/M1-Notepad.au.pkg 
         pkgbuild --identifier ${BUNDLE_ID}.vst3 --version ${VERSION} --component ${DIST_DIR}/VST3/M1-Notepad.vst3 \
