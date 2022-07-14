@@ -40,6 +40,18 @@ jobs:
       shell: bash
       run: cmake --build . --config $BUILD_TYPE
 
+    - name: Codesign AAX
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      env:
+        DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
+        WRAPTOOL_PATH: ${{ secrets.WRAPTOOL_PATH }}
+        PACE_ID: ${{ secrets.PACE_ID }}
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        M1_GLOBAL_GUID: ${{ secrets.M1_GLOBAL_GUID }}
+      run: |
+        ${WRAPTOOL_PATH} wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --in ${DIST_DIR}/AAX/M1-NotePad.aaxplugin --out ${DIST_DIR}/AAX/M1-NotePad.aaxplugin
+
     - name: Package (macos)
       if: runner.os == 'MacOS'
       working-directory: ${{runner.workspace}}/build
@@ -47,6 +59,7 @@ jobs:
       env:
         DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
         INSTALL_DIR: /Library/Audio/Plug-Ins
+        AAX_INSTALL_DIR: /Library/Application\ Support/Avid/Audio/Plug-Ins
         BUNDLE_ID: ${{ env.BUNDLE_ID }}
         VERSION: ${{ env.VERSION }}
         MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
@@ -70,7 +83,7 @@ jobs:
         pkgbuild --identifier ${BUNDLE_ID}.vst3 --version ${VERSION} --component ${DIST_DIR}/VST3/M1-Notepad.vst3 \
         --install-location "${INSTALL_DIR}/VST3" ${DIST_DIR}/M1-Notepad.vst3.pkg 
         pkgbuild --identifier ${BUNDLE_ID}.aaxplugin --version ${VERSION} --component ${DIST_DIR}/AAX/M1-Notepad.aaxplugin \
-        --install-location "${INSTALL_DIR}/AAX" ${DIST_DIR}/M1-Notepad.aaxplugin.pkg 
+        --install-location "${AAX_INSTALL_DIR}" ${DIST_DIR}/M1-Notepad.aaxplugin.pkg 
         productbuild --synthesize \
         --package "${DIST_DIR}/M1-Notepad.au.pkg" \
         --package "${DIST_DIR}/M1-Notepad.vst3.pkg" \
