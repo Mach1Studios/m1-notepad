@@ -21,9 +21,10 @@ jobs:
         submodules: true
         lfs: true
 
-    - name: LFS
+    - name: checkoutLFS
       uses: actions/checkout@v2
-      run: git lfs pull
+    
+    - run: git lfs pull
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
