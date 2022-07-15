@@ -68,7 +68,7 @@ jobs:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         M1_GLOBAL_GUID: ${{ secrets.M1_GLOBAL_GUID }}
       run: |
-        ${{runner.workspace}}/JUCE_deps/${WRAPTOOL_MAC} wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --installedbinaries --in ${DIST_DIR}/AAX/M1-NotePad.aaxplugin --out ${DIST_DIR}/AAX/M1-NotePad.aaxplugin
+        ${{runner.workspace}}/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --installedbinaries --in ${DIST_DIR}/AAX/M1-NotePad.aaxplugin --out ${DIST_DIR}/AAX/M1-NotePad.aaxplugin
 
     - name: Codesign AAX (windows)
       if: runner.os == 'Windows'
@@ -81,7 +81,7 @@ jobs:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         M1_GLOBAL_GUID: ${{ secrets.M1_GLOBAL_GUID }}
       run: |
-        ${{runner.workspace}}/JUCE_deps/${WRAPTOOL_WIN} wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --in ${DIST_DIR}/AAX/M1-NotePad.aaxplugin --out ${DIST_DIR}/AAX/M1-NotePad.aaxplugin
+        ${{runner.workspace}}/JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --in ${DIST_DIR}/AAX/M1-NotePad.aaxplugin --out ${DIST_DIR}/AAX/M1-NotePad.aaxplugin
 
     - name: Package (macos)
       if: runner.os == 'MacOS'
