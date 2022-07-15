@@ -20,11 +20,9 @@ jobs:
         token: ${{ secrets.CI_PAT }}
         submodules: true
         lfs: true
-
-    - name: checkoutLFS
-      uses: actions/checkout@v2
     
-    - run: git lfs pull
+    - name: LFS pull submodule
+      run: git -C JUCE_deps lfs pull
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
