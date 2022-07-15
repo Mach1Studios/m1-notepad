@@ -16,12 +16,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Submodule JUCE
+      uses: actions/checkout@v3
       with:
+        repository: juce-framework/JUCE
+        path: JUCE
+        ref: '6.1.6'
+
+    - name: Submodule JUCE_deps
+      uses: actions/checkout@v3
+      with:
+        repository: Mach1Studios/m1-juce-deps
+        path: JUCE_deps
         token: ${{ secrets.CI_PAT }}
-        submodules: true
+        lfs: true
     
     - name: LFS pull submodule
-      run: git -C JUCE_deps lfs pull
+      run: |
+        git -C JUCE_deps lfs pull
+        ls -R JUCE_deps
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
@@ -67,7 +81,7 @@ jobs:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         M1_GLOBAL_GUID: ${{ secrets.M1_GLOBAL_GUID }}
       run: |
-        D:/a/m1-notepad/JUCE_deps/${WRAPTOOL_WIN} wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --in ${DIST_DIR}\AAX\M1-NotePad.aaxplugin --out ${DIST_DIR}\AAX\M1-NotePad.aaxplugin
+        ${{runner.workspace}}/JUCE_deps/${WRAPTOOL_WIN} wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --in ${DIST_DIR}/AAX/M1-NotePad.aaxplugin --out ${DIST_DIR}/AAX/M1-NotePad.aaxplugin
 
     - name: Package (macos)
       if: runner.os == 'MacOS'
