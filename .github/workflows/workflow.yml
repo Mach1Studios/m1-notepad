@@ -22,8 +22,6 @@ jobs:
     
     - name: LFS pull submodule
       run: git -C JUCE_deps lfs pull
-      with:
-        token: ${{ secrets.CI_PAT }}
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
