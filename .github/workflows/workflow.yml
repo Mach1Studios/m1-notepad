@@ -33,9 +33,7 @@ jobs:
         lfs: true
     
     - name: LFS pull submodule
-      run: |
-        git -C JUCE_deps lfs pull
-        ls -R JUCE_deps
+      run: git -C JUCE_deps lfs pull
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
@@ -56,32 +54,6 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE
-
-    - name: Codesign AAX (macos)
-      if: runner.os == 'MacOS'
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      env:
-        DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
-        WRAPTOOL_MAC: ${{ secrets.WRAPTOOL_MAC }}
-        PACE_ID: ${{ secrets.PACE_ID }}
-        APPLE_ID: ${{ secrets.APPLE_ID }}
-        M1_GLOBAL_GUID: ${{ secrets.M1_GLOBAL_GUID }}
-      run: |
-        ${{runner.workspace}}/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --installedbinaries --in ${DIST_DIR}/AAX/M1-Notepad.aaxplugin --out ${DIST_DIR}/AAX/M1-Notepad.aaxplugin
-
-    # - name: Codesign AAX (windows)
-    #   if: runner.os == 'Windows'
-    #   working-directory: ${{runner.workspace}}/build
-    #   shell: bash
-    #   env:
-    #     DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
-    #     WRAPTOOL_WIN: ${{ secrets.WRAPTOOL_WIN }}
-    #     PACE_ID: ${{ secrets.PACE_ID }}
-    #     APPLE_ID: ${{ secrets.APPLE_ID }}
-    #     M1_GLOBAL_GUID: ${{ secrets.M1_GLOBAL_GUID }}
-    #   run: |
-    #     ${{runner.workspace}}/JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe wrap --verbose --account ${PACE_ID} --wcguid ${M1_GLOBAL_GUID} --signid ${APPLE_ID} --fusion off --in ${DIST_DIR}/AAX/M1-Notepad.aaxplugin --out ${DIST_DIR}/AAX/M1-Notepad.aaxplugin
 
     - name: Package (macos)
       if: runner.os == 'MacOS'
