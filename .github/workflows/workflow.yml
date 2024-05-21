@@ -55,27 +55,69 @@ jobs:
       shell: bash
       run: cmake --build . --config $BUILD_TYPE
 
-    - name: Create DMG, Notarize and Staple (macOS)
+    - name: Package (macos)
       if: runner.os == 'MacOS'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      env:
+        DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
+        INSTALL_DIR: /Library/Audio/Plug-Ins
+        AAX_INSTALL_DIR: /Library/Application\ Support/Avid/Audio/Plug-Ins
+        BUNDLE_ID: ${{ env.BUNDLE_ID }}
+        VERSION: ${{ env.VERSION }}
+        MACOS_CERTIFICATE: ${{ secrets.DEV_ID_APP_CERT }}
+        MACOS_INSTALLER_CERT: ${{ secrets.DEV_ID_INST_CERT }}
+        MACOS_CERTIFICATE_PWD: ${{ secrets.DEV_ID_CERT_PASSWORD }}
       run: |
-        # workaround for https://github.com/LinusU/node-appdmg/issues/234
-        python3 -m pip install setuptools --break-system-packages
-        npm install -g appdmg
-        mkdir -p packaging/dmg
+        echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+        echo $MACOS_INSTALLER_CERT | base64 --decode > installer.p12
+        RANDOM_PWD=`date | md5`
+        security create-keychain -p ${RANDOM_PWD} build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p ${RANDOM_PWD} build.keychain
+        security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
+        security import installer.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/productbuild
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${RANDOM_PWD} build.keychain
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" ${DIST_DIR}/AU/M1-Notepad.component -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" ${DIST_DIR}/VST3/M1-Notepad.vst3 -v
+        /usr/bin/codesign --timestamp --force --deep -s "Developer ID Application" ${DIST_DIR}/AAX/M1-Notepad.aaxplugin -v
+        pkgbuild --identifier ${BUNDLE_ID}.au --version ${VERSION} --component ${DIST_DIR}/AU/M1-Notepad.component \
+        --install-location "${INSTALL_DIR}/Components" ${DIST_DIR}/M1-Notepad.au.pkg 
+        pkgbuild --identifier ${BUNDLE_ID}.vst3 --version ${VERSION} --component ${DIST_DIR}/VST3/M1-Notepad.vst3 \
+        --install-location "${INSTALL_DIR}/VST3" ${DIST_DIR}/M1-Notepad.vst3.pkg 
+        pkgbuild --identifier ${BUNDLE_ID}.aaxplugin --version ${VERSION} --component ${DIST_DIR}/AAX/M1-Notepad.aaxplugin \
+        --install-location "${AAX_INSTALL_DIR}" ${DIST_DIR}/M1-Notepad.aaxplugin.pkg 
+        productbuild --synthesize \
+        --package "${DIST_DIR}/M1-Notepad.au.pkg" \
+        --package "${DIST_DIR}/M1-Notepad.vst3.pkg" \
+        --package "${DIST_DIR}/M1-Notepad.aaxplugin.pkg" \
+        distribution.xml
+        productbuild --sign "Developer ID Installer" --distribution distribution.xml --package-path ${DIST_DIR} ${DIST_DIR}/M1-Notepad.pkg
 
-        # Create directories for the dmg symlinks
-        sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/Components && sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/VST3 && sudo mkdir -m 755 -p /Library/Application\ Support/Avid/Audio/Plug-Ins
-        ln -s /Library/Audio/Plug-Ins/Components "packaging/dmg/Your Mac's Component folder"
-        ln -s /Library/Audio/Plug-Ins/VST3 "packaging/dmg/Your Mac's VST3 folder"
-        ln -s /Library/Application\ Support/Avid/Audio/Plug-Ins "packaging/dmg/Your Mac's AAX folder"
-        mv ${DIST_DIR}/VST3/M1-Notepad.vst3 packaging/dmg
-        mv "${DIST_DIR}/AU/M1-Notepad.component" packaging/dmg
-        mv "${DIST_DIR}/AAX/M1-Notepad.aaxplugin" packaging/dmg
+    # - name: Create DMG, Notarize and Staple (macOS)
+    #   if: runner.os == 'MacOS'
+    #   env:
+    #     DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
+    #     BUNDLE_ID: ${{ env.BUNDLE_ID }}
+    #   run: |
+    #     # workaround for https://github.com/LinusU/node-appdmg/issues/234
+    #     python3 -m pip install setuptools --break-system-packages
+    #     npm install -g appdmg
+    #     mkdir -p packaging/dmg
 
-        # Run appdmg to create the .dmg
-        cd packaging && appdmg dmg.json "M1-Notepad.dmg"
-        xcrun notarytool submit "M1-Notepad.dmg" --apple-id ${{ secrets.APPLE_USERNAME }} --password ${{ secrets.ALTOOL_APPPASS }} --team-id ${{ secrets.APPLE_TEAM_CODE }} --wait
-        xcrun stapler staple "M1-Notepad.dmg"
+    #     # Create directories for the dmg symlinks
+    #     sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/Components && sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/VST3 && sudo mkdir -m 755 -p /Library/Application\ Support/Avid/Audio/Plug-Ins
+    #     ln -s /Library/Audio/Plug-Ins/Components "packaging/dmg/Your Mac's Component folder"
+    #     ln -s /Library/Audio/Plug-Ins/VST3 "packaging/dmg/Your Mac's VST3 folder"
+    #     ln -s /Library/Application\ Support/Avid/Audio/Plug-Ins "packaging/dmg/Your Mac's AAX folder"
+    #     mv ${DIST_DIR}/VST3/M1-Notepad.vst3 packaging/dmg
+    #     mv "${DIST_DIR}/AU/M1-Notepad.component" packaging/dmg
+    #     mv "${DIST_DIR}/AAX/M1-Notepad.aaxplugin" packaging/dmg
+
+    #     # Run appdmg to create the .dmg
+    #     cd packaging && appdmg dmg.json "M1-Notepad.dmg"
+    #     xcrun notarytool submit "M1-Notepad.dmg" --apple-id ${{ secrets.APPLE_USERNAME }} --password ${{ secrets.ALTOOL_APPPASS }} --team-id ${{ secrets.APPLE_TEAM_CODE }} --wait
+    #     xcrun stapler staple "M1-Notepad.dmg"
 
     - name: InnoSetup Installer (windows)
       if: runner.os == 'Windows'
@@ -89,7 +131,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: M1-Notepad (MacOS)
-        path: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-Notepad.dmg
+        path: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-Notepad.pkg
         if-no-files-found: error
 
     - name: 'Upload Artifact (windows)'
