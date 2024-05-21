@@ -16,7 +16,8 @@ jobs:
 
     steps:
     - name: Set up custom git config
-      run: git config --global http.postBuffer 1048576000
+      if: runner.os == 'Windows'
+      run: git config --global core.compression 0
 
     - uses: actions/checkout@v3
 
