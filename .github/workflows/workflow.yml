@@ -26,19 +26,21 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Submodule JUCE
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: juce-framework/JUCE
         path: JUCE
         ref: '7.0.9'
+        fetch-depth: 1
 
     - name: Submodule JUCE_deps
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: Mach1Studios/m1-juce-deps
         path: JUCE_deps
         ssh-key: ${{ secrets.HIMWHO_SSH_KEY }}
         lfs: true
+        fetch-depth: 1
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
