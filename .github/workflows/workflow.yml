@@ -55,28 +55,27 @@ jobs:
       shell: bash
       run: cmake --build . --config $BUILD_TYPE
 
+    - name: Create DMG, Notarize and Staple (macOS)
+      if: ${{ matrix.name == 'macOS' }}
+      run: |
+        # workaround for https://github.com/LinusU/node-appdmg/issues/234
+        python3 -m pip install setuptools --break-system-packages
+        npm install -g appdmg
+        mkdir -p packaging/dmg
 
-      - name: Create DMG, Notarize and Staple (macOS)
-        if: ${{ matrix.name == 'macOS' }}
-        run: |
-          # workaround for https://github.com/LinusU/node-appdmg/issues/234
-          python3 -m pip install setuptools --break-system-packages
-          npm install -g appdmg
-          mkdir -p packaging/dmg
+        # Create directories for the dmg symlinks
+        sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/Components && sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/VST3 && sudo mkdir -m 755 -p /Library/Application\ Support/Avid/Audio/Plug-Ins
+        ln -s /Library/Audio/Plug-Ins/Components "packaging/dmg/Your Mac's Component folder"
+        ln -s /Library/Audio/Plug-Ins/VST3 "packaging/dmg/Your Mac's VST3 folder"
+        ln -s /Library/Application\ Support/Avid/Audio/Plug-Ins "packaging/dmg/Your Mac's AAX folder"
+        mv ${DIST_DIR}/VST3/M1-Notepad.vst3 packaging/dmg
+        mv "${DIST_DIR}/AU/M1-Notepad.component" packaging/dmg
+        mv "${DIST_DIR}/AAX/M1-Notepad.aaxplugin" packaging/dmg
 
-          # Create directories for the dmg symlinks
-          sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/Components && sudo mkdir -m 755 -p /Library/Audio/Plug-Ins/VST3 && sudo mkdir -m 755 -p /Library/Application\ Support/Avid/Audio/Plug-Ins
-          ln -s /Library/Audio/Plug-Ins/Components "packaging/dmg/Your Mac's Component folder"
-          ln -s /Library/Audio/Plug-Ins/VST3 "packaging/dmg/Your Mac's VST3 folder"
-          ln -s /Library/Application\ Support/Avid/Audio/Plug-Ins "packaging/dmg/Your Mac's AAX folder"
-          mv ${DIST_DIR}/VST3/M1-Notepad.vst3 packaging/dmg
-          mv "${DIST_DIR}/AU/M1-Notepad.component" packaging/dmg
-          mv "${DIST_DIR}/AAX/M1-Notepad.aaxplugin" packaging/dmg
-
-          # Run appdmg to create the .dmg
-          cd packaging && appdmg dmg.json "M1-Notepad.dmg"
-          xcrun notarytool submit "M1-Notepad.dmg" --apple-id ${{ secrets.APPLE_USERNAME }} --password ${{ secrets.ALTOOL_APPPASS }} --team-id ${{ secrets.APPLE_TEAM_CODE }} --wait
-          xcrun stapler staple "M1-Notepad.dmg"
+        # Run appdmg to create the .dmg
+        cd packaging && appdmg dmg.json "M1-Notepad.dmg"
+        xcrun notarytool submit "M1-Notepad.dmg" --apple-id ${{ secrets.APPLE_USERNAME }} --password ${{ secrets.ALTOOL_APPPASS }} --team-id ${{ secrets.APPLE_TEAM_CODE }} --wait
+        xcrun stapler staple "M1-Notepad.dmg"
 
     - name: InnoSetup Installer (windows)
       if: runner.os == 'Windows'
