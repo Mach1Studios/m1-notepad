@@ -22,7 +22,7 @@ jobs:
       with:
         repository: juce-framework/JUCE
         path: JUCE
-        ref: 'juce8'
+        ref: '7.0.9'
 
     - name: Submodule JUCE_deps
       uses: actions/checkout@v3
@@ -93,21 +93,16 @@ jobs:
         --package "${DIST_DIR}/M1-Notepad.aaxplugin.pkg" \
         distribution.xml
         productbuild --sign "Developer ID Installer" --distribution distribution.xml --package-path ${DIST_DIR} ${DIST_DIR}/M1-Notepad.pkg
-    
+
     - name: Notarize (macos)
       if: runner.os == 'MacOS'
-      uses: devbotsxyz/xcode-notarize@v1
+      uses: GuillaumeFalourd/notary-tools@v1
       with:
         product-path: "${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-Notepad.pkg"
-        appstore-connect-username: ${{ secrets.MACOS_NOTARIZE_USER }} 
-        appstore-connect-password: ${{ secrets.MACOS_NOTARIZE_PWD }} 
-        primary-bundle-id: ${{ env.BUNDLE_ID }}
-
-    - name: Staple (macos)
-      if: runner.os == 'MacOS'
-      uses: devbotsxyz/xcode-staple@v1
-      with:
-        product-path: "${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-Notepad.pkg"
+        apple_id: ${{ secrets.APPLE_USERNAME }}
+        password: ${{ secrets.ALTOOL_APPPASS }}
+        team_id: ${{ secrets.APPLE_TEAM_CODE }}
+        staple: 'true'
 
     - name: InnoSetup Installer (windows)
       if: runner.os == 'Windows'
