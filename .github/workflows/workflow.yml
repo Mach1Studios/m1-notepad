@@ -56,7 +56,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE
 
     - name: Create DMG, Notarize and Staple (macOS)
-      if: ${{ matrix.name == 'macOS' }}
+      if: runner.os == 'MacOS'
       run: |
         # workaround for https://github.com/LinusU/node-appdmg/issues/234
         python3 -m pip install setuptools --break-system-packages
@@ -89,7 +89,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: M1-Notepad (MacOS)
-        path: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-Notepad.pkg
+        path: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-Notepad.dmg
         if-no-files-found: error
 
     - name: 'Upload Artifact (windows)'
