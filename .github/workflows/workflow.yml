@@ -19,7 +19,11 @@ jobs:
       if: runner.os == 'Windows'
       run: git config --global core.compression 0
 
-    - uses: actions/checkout@v3
+    - name: Set up custom git config (2)
+      if: runner.os == 'Windows'
+      run: git config --global http.postBuffer 524288000
+
+    - uses: actions/checkout@v4
 
     - name: Submodule JUCE
       uses: actions/checkout@v3
