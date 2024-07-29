@@ -68,7 +68,7 @@ jobs:
       shell: bash
       env:
           DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
-          WRAPTOOL: ${{runner.workspace}}/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool
+          WRAPTOOL: $GITHUB_WORKSPACE/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool
           PACE_ID: ${{ secrets.PACE_ID }}
           WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -119,7 +119,7 @@ jobs:
       shell: bash
       env:
           DIST_DIR: ${{runner.workspace}}\build\M1-Notepad_artefacts\Release
-          WRAPTOOL: ${{runner.workspace}}\JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe
+          WRAPTOOL: $GITHUB_WORKSPACE\JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe
           PACE_ID: ${{ secrets.PACE_ID }}
           WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
