@@ -30,7 +30,7 @@ jobs:
       with:
         repository: juce-framework/JUCE
         path: JUCE
-        ref: '7.0.9'
+        ref: '8.0.0'
         fetch-depth: 1
 
     - name: Submodule JUCE_deps
