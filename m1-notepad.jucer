@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="fufW0k" name="M1-Notepad" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginFormats="buildAAX,buildAU,buildVST,buildVST3"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginFormats="buildAAX,buildAU,buildVST3"
               bundleIdentifier="com.mach1.Notepad" companyCopyright="Mach1"
               companyName="Mach1" companyEmail="dylan@mach1.tech" pluginCharacteristicsValue="pluginAAXDisableMultiMono,pluginEditorRequiresKeys,pluginRTASDisableMultiMono"
               pluginVST3Category="Tools" pluginRTASCategory="0" pluginAAXCategory="0"
