@@ -11,6 +11,8 @@ endif()
 
 # check which formats we want to build
 set(FORMATS "VST3")
+set(AAX_PATH "JUCE/modules/juce_audio_plugin_client/AAX/SDK")
+juce_set_aax_sdk_path(${AAX_PATH})
 list(APPEND FORMATS "AAX")
 
 # if (VST2_PATH)
