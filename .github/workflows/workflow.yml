@@ -34,6 +34,7 @@ jobs:
         fetch-depth: 1
 
     - name: Submodule JUCE_deps
+      if: runner.os == 'MacOS'
       uses: actions/checkout@v4
       with:
         repository: Mach1Studios/m1-juce-deps
@@ -113,17 +114,17 @@ jobs:
         distribution.xml
         productbuild --sign "Developer ID Installer" --distribution distribution.xml --package-path ${DIST_DIR} ${DIST_DIR}/M1-Notepad.pkg
 
-    - name: Codesign (windows)
-      if: runner.os == 'Windows'
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      env:
-          DIST_DIR: ${{runner.workspace}}\build\M1-Notepad_artefacts\Release
-          WRAPTOOL: ${{runner.workspace}}\m1-notepad\JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe
-          PACE_ID: ${{ secrets.PACE_ID }}
-          WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-      run: $WRAPTOOL sign --verbose --account $PACE_ID --wcguid $WRAP_GUID --signid $APPLE_ID --in ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --out ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --autoinstall on
+    # - name: Codesign (windows)
+    #   if: runner.os == 'Windows'
+    #   working-directory: ${{runner.workspace}}/build
+    #   shell: bash
+    #   env:
+    #       DIST_DIR: ${{runner.workspace}}\build\M1-Notepad_artefacts\Release
+    #       WRAPTOOL: ${{runner.workspace}}\m1-notepad\JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe
+    #       PACE_ID: ${{ secrets.PACE_ID }}
+    #       WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
+    #       APPLE_ID: ${{ secrets.APPLE_ID }}
+    #   run: $WRAPTOOL sign --verbose --account $PACE_ID --wcguid $WRAP_GUID --signid $APPLE_ID --in ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --out ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --autoinstall on
 
     - name: InnoSetup Installer (windows)
       if: runner.os == 'Windows'
