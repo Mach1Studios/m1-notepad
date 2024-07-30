@@ -17,3 +17,5 @@ NotePad based plugin for track/session notes, very basic and just passes through
 - ~AAX resize function/button?~
 - Strikethrough
 - List Maker
+- Use new webview from JUCE8
+- Fix AAX CI building (lack of PACE AAX SIGNING tool for CI but this can be done by reversing [tag:](https://github.com/Mach1Studios/m1-notepad/releases/tag/feature%2Fci-for-aax))

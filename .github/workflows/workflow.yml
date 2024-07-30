@@ -45,7 +45,7 @@ jobs:
         fetch-depth: 1
 
     - name: Create Build Environment
-      run: cmake -E make_directory $GITHUB_WORKSPACE/build
+      run: cmake -E make_directory ${{ github.workspace }}/build
 
     - name: Configure CMake (macos)
       if: runner.os == 'MacOS'
@@ -55,11 +55,11 @@ jobs:
     - name: Configure CMake (windows)
       if: runner.os == 'Windows'
       shell: bash
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{ runner.workspace }}/build
       run: cmake $GITHUB_WORKSPACE -A x64 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Build
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{ runner.workspace }}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE
 
