@@ -1,0 +1,24 @@
+# This file is used to setup local variables and paths for 
+# configuring, building and packaging the m1-notepad 
+# project cross-platform
+#
+# Please rename and fill in the variables below to be used
+# with the Makefile in this directory or 
+# copy these variables as environment variables as needed
+#
+
+WRAPTOOL=
+PACE_ID=
+
+APPLE_TEAM_CODE=
+APPLE_CODESIGN_ID="Developer ID Application: XXXXX ($(APPLE_TEAM_CODE))"
+APPLE_CODESIGN_CODE=
+APPLE_CODESIGN_INSTALLER_ID="Developer ID Installer: XXXXX ($(APPLE_TEAM_CODE))"
+
+WIN_INNO_PATH=
+WIN_SIGNTOOL_PATH=
+WIN_SIGNTOOL_ID=
+WIN_SIGNTOOL_PASS=
+WIN_CODESIGN_CERT_PATH=
+
+WRAP_GUID=

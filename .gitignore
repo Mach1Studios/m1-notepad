@@ -65,3 +65,6 @@ extras/Projucer/JUCECompileEngine.dylib
 /build
 
 CMakeUserPresets.json
+
+## Ignoring the makefile variables so they can be locally edited
+Makefile.variables
