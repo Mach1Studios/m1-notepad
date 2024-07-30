@@ -1,3 +1,6 @@
+## Ignoring the makefile variables so they can be locally edited
+Makefile.variables
+
 ._*
 *.mode1v3
 *.pbxuser
