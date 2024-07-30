@@ -42,37 +42,34 @@ jobs:
       with:
         repository: Mach1Studios/m1-juce-deps
         path: JUCE_deps
-        token: ${{ secrets.CI_GH_ACCESS_TOKEN }}
+        ssh-key: ${{ secrets.HIMWHO_SSH_KEY }}
         lfs: true
         fetch-depth: 1
 
     - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
+      run: cmake -E make_directory $GITHUB_WORKSPACE/build
 
     - name: Configure CMake (macos)
       if: runner.os == 'MacOS'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      working-directory: ${{ github.workspace }}/build
+      run: cmake ${{ github.workspace }} -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Configure CMake (windows)
       if: runner.os == 'Windows'
       shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -A x64 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      working-directory: ${{ github.workspace }}/build
+      run: cmake ${{ github.workspace }} -A x64 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Build
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{ github.workspace }}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE
 
     - name: Codesign (macos)
       if: runner.os == 'MacOS'
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
       env:
-        DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
-        WRAPTOOL: ${{runner.workspace}}/m1-notepad/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool
+        DIST_DIR: ${{ github.workspace }}/build/M1-Notepad_artefacts/Release
+        WRAPTOOL: ${{ github.workspace }}/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool
         PACE_ID: ${{ secrets.PACE_ID }}
         WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
         APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
@@ -81,10 +78,10 @@ jobs:
 
     - name: Package (macos)
       if: runner.os == 'MacOS'
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{ github.workspace }}/build
       shell: bash
       env:
-        DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
+        DIST_DIR: ${{ github.workspace }}/build/M1-Notepad_artefacts/Release
         INSTALL_DIR: /Library/Audio/Plug-Ins
         AAX_INSTALL_DIR: /Library/Application\ Support/Avid/Audio/Plug-Ins
         BUNDLE_ID: ${{ env.BUNDLE_ID }}
@@ -120,11 +117,10 @@ jobs:
 
     # - name: Codesign (windows)
     #   if: runner.os == 'Windows'
-    #   working-directory: ${{runner.workspace}}/build
     #   shell: bash
     #   env:
-    #       DIST_DIR: ${{runner.workspace}}\build\M1-Notepad_artefacts\Release
-    #       WRAPTOOL: ${{runner.workspace}}\m1-notepad\JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe
+    #       DIST_DIR: ${{ github.workspace }}\build\M1-Notepad_artefacts\Release
+    #       WRAPTOOL: ${{ github.workspace }}\JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe
     #       PACE_ID: ${{ secrets.PACE_ID }}
     #       WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
     #       WIN_SIGNTOOL_ID: ${{ secrets.WIN_SIGNTOOL_ID }}
@@ -132,9 +128,9 @@ jobs:
 
     - name: InnoSetup Installer (windows)
       if: runner.os == 'Windows'
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{ github.workspace }}/build
       run: |
-        "%programfiles(x86)%\Inno Setup 6\iscc.exe" /DBuildDir="${{runner.workspace}}\build\M1-Notepad_artefacts\Release" "${{runner.workspace}}\M1-Notepad\Resources\InnoSetup.iss"
+        "%programfiles(x86)%\Inno Setup 6\iscc.exe" /DBuildDir="$GITHUB_WORKSPACE\build\M1-Notepad_artefacts\Release" "$GITHUB_WORKSPACE\M1-Notepad\Resources\InnoSetup.iss"
       shell: cmd
 
     - name: 'Upload Artifact (macos)'
@@ -142,7 +138,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: M1-Notepad (MacOS)
-        path: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release/M1-Notepad.pkg
+        path: ${{ github.workspace }}/build/M1-Notepad_artefacts/Release/M1-Notepad.pkg
         if-no-files-found: error
 
     - name: 'Upload Artifact (windows)'
@@ -150,5 +146,5 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: M1-Notepad (Windows)
-        path: ${{runner.workspace}}\build\M1-Notepad_artefacts\Release\Output\M1-Notepad_WIN.exe
+        path: ${{ github.workspace }}\build\M1-Notepad_artefacts\Release\Output\M1-Notepad_WIN.exe
         if-no-files-found: error
