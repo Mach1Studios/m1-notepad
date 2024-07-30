@@ -57,7 +57,7 @@ juce_generate_juce_header(M1-Notepad)
 if (APPLE)
     set(COPY_FOLDER ${CMAKE_SOURCE_DIR}/Builds/MacOSX)
 elseif(WIN32)
-    set(COPY_FOLDER ${CMAKE_SOURCE_DIR}/Builds/VisualStudio2017)
+    set(COPY_FOLDER ${CMAKE_SOURCE_DIR}/Builds/VisualStudio2019)
 endif()
 
 foreach(FORMAT ${FORMATS})

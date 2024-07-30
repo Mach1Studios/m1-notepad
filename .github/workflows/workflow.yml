@@ -72,8 +72,8 @@ jobs:
           WRAPTOOL: ${{runner.workspace}}/m1-notepad/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool
           PACE_ID: ${{ secrets.PACE_ID }}
           WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-      run: $WRAPTOOL sign --verbose --account $PACE_ID --wcguid $WRAP_GUID --signid $APPLE_ID --in ${DIST_DIR}/AAX/M1-Notepad.aaxplugin --out ${DIST_DIR}/AAX/M1-Notepad.aaxplugin --autoinstall on
+          APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
+      run: $WRAPTOOL sign --verbose --account $PACE_ID --wcguid "$WRAP_GUID" --signid $APPLE_CODESIGN_ID --in ${DIST_DIR}/AAX/M1-Notepad.aaxplugin --out ${DIST_DIR}/AAX/M1-Notepad.aaxplugin
 
     - name: Package (macos)
       if: runner.os == 'MacOS'
@@ -123,8 +123,8 @@ jobs:
     #       WRAPTOOL: ${{runner.workspace}}\m1-notepad\JUCE_deps/PACEAntiPiracy_WIN/Eden/Fusion/Versions/5/wraptool.exe
     #       PACE_ID: ${{ secrets.PACE_ID }}
     #       WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
-    #       APPLE_ID: ${{ secrets.APPLE_ID }}
-    #   run: $WRAPTOOL sign --verbose --account $PACE_ID --wcguid $WRAP_GUID --signid $APPLE_ID --in ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --out ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --autoinstall on
+    #       WIN_SIGNTOOL_ID: ${{ secrets.WIN_SIGNTOOL_ID }}
+    #   run: $WRAPTOOL sign --verbose --account $PACE_ID --wcguid $WRAP_GUID --signid $WIN_SIGNTOOL_ID --in ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --out ${DIST_DIR}\AAX\M1-Notepad.aaxplugin --autoinstall on
 
     - name: InnoSetup Installer (windows)
       if: runner.os == 'Windows'
