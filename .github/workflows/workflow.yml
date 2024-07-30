@@ -138,7 +138,7 @@ jobs:
       if: runner.os == 'Windows'
       working-directory: ${{ runner.workspace }}/build
       run: |
-        "%programfiles(x86)%\Inno Setup 6\iscc.exe" /DBuildDir="$GITHUB_WORKSPACE\build\M1-Notepad_artefacts\Release" "$GITHUB_WORKSPACE\M1-Notepad\Resources\InnoSetup.iss"
+        "%programfiles(x86)%\Inno Setup 6\iscc.exe" /DBuildDir="${{ runner.workspace }}\build\M1-Notepad_artefacts\Release" "$GITHUB_WORKSPACE\M1-Notepad\Resources\InnoSetup.iss"
       shell: cmd
 
     - name: 'Upload Artifact (macos)'
