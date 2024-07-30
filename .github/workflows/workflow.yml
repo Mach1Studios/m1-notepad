@@ -35,13 +35,14 @@ jobs:
         ref: '8.0.0'
         fetch-depth: 1
 
+    # TODO: Change to allow for windows too after resolving pull errors on github actions
     - name: Submodule JUCE_deps
       if: runner.os == 'MacOS'
       uses: actions/checkout@v4
       with:
         repository: Mach1Studios/m1-juce-deps
         path: JUCE_deps
-        ssh-key: ${{ secrets.HIMWHO_SSH_KEY }}
+        token: ${{ secrets.CI_GH_ACCESS_TOKEN }}
         lfs: true
         fetch-depth: 1
 
@@ -70,12 +71,13 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       env:
-          DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
-          WRAPTOOL: ${{runner.workspace}}/m1-notepad/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool
-          PACE_ID: ${{ secrets.PACE_ID }}
-          WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
-          APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
-      run: $WRAPTOOL sign --verbose --account $PACE_ID --wcguid "$WRAP_GUID" --signid $APPLE_CODESIGN_ID --in ${DIST_DIR}/AAX/M1-Notepad.aaxplugin --out ${DIST_DIR}/AAX/M1-Notepad.aaxplugin
+        DIST_DIR: ${{runner.workspace}}/build/M1-Notepad_artefacts/Release
+        WRAPTOOL: ${{runner.workspace}}/m1-notepad/JUCE_deps/PACEAntiPiracy_MAC/Eden/Fusion/Versions/5/bin/wraptool
+        PACE_ID: ${{ secrets.PACE_ID }}
+        WRAP_GUID: ${{ secrets.M1_GLOBAL_GUID }}
+        APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
+      run: |
+        $WRAPTOOL sign --verbose --account $PACE_ID --wcguid "$WRAP_GUID" --signid $APPLE_CODESIGN_ID --in ${DIST_DIR}/AAX/M1-Notepad.aaxplugin --out ${DIST_DIR}/AAX/M1-Notepad.aaxplugin
 
     - name: Package (macos)
       if: runner.os == 'MacOS'
