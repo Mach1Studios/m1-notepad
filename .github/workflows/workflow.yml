@@ -6,6 +6,7 @@ env:
   BUILD_TYPE: Release
   BUNDLE_ID: com.mach1.notepad
   VERSION: 1.0.2
+  ACTIONS_RUNNER_DEBUG: true
 
 jobs:
   build:
@@ -62,6 +63,13 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE
+
+    - name: Slack Notification
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_MESSAGE: ${{join(steps.run_tests.outputs.*, '\n')}}
+        SLACK_TITLE: CI Test Suite
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
     - name: Codesign (macos)
       if: runner.os == 'MacOS'
