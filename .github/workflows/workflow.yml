@@ -54,11 +54,13 @@ jobs:
 
     - name: Configure CMake (windows)
       if: runner.os == 'Windows'
-      working-directory: ${{ github.workspace }}\build
-      run: cmake ${{ github.workspace }} -A x64 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      shell: bash
+      working-directory: ${{ runner.workspace }}\build
+      run: cmake $GITHUB_WORKSPACE -A x64 -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Build
-      working-directory: ${{ github.workspace }}/build
+      working-directory: ${{ runner.workspace }}/build
+      shell: bash
       run: cmake --build . --config $BUILD_TYPE
 
     # - name: Codesign (macos)
