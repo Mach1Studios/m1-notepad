@@ -44,7 +44,12 @@ jobs:
         lfs: true
         fetch-depth: 1
 
-    - name: Create Build Environment
+    - name: Create Build Environment (macos)
+      if: runner.os == 'MacOS'
+      run: cmake -E make_directory ${{ github.workspace }}/build
+
+    - name: Create Build Environment (windows)
+      if: runner.os == 'Windows'
       run: cmake -E make_directory ${{ runner.workspace }}/build
 
     - name: Configure CMake (macos)
