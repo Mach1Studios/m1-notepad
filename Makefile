@@ -13,12 +13,10 @@ endif
 VERSION := $(shell grep VERSION: .github/workflows/workflow.yml | cut -d ':' -f 2 | cut -d ' ' -f 2 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 BUNDLEID := $(shell grep BUNDLE_ID: .github/workflows/workflow.yml | cut -d ':' -f 2 | sed '1p;d' | cut -d ' ' -f 2 )
 
-install:
-
 configure: 
 	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release
 
-build:
+build: configure
 	cmake --build build --config "Release"
 
 codesign:
@@ -29,13 +27,13 @@ ifeq ($(detected_OS),Darwin)
 	$(WRAPTOOL) sign --verbose --account $(PACE_ID) --wcguid $(WRAP_GUID) --signid $(APPLE_CODESIGN_ID) --in build/M1-Notepad_artefacts/Release/AAX/M1-Notepad.aaxplugin --out build/M1-Notepad_artefacts/Release/AAX/M1-Notepad.aaxplugin
 endif
 
-package: get_bundle_id get_version configure build codesign
+package: get_bundle_id get_version build codesign
 ifeq ($(detected_OS),Darwin)
-	pkgbuild --identifier ${BUNDLE_ID}.au --version ${VERSION} --component build/M1-Notepad_artefacts/Release/AU/M1-Notepad.component \
+	pkgbuild --identifier $(BUNDLE_ID).au --version $(VERSION) --component build/M1-Notepad_artefacts/Release/AU/M1-Notepad.component \
 	--install-location "/Library/Audio/Plug-Ins/Components" build/M1-Notepad_artefacts/Release/M1-Notepad.au.pkg 
-	pkgbuild --identifier ${BUNDLE_ID}.vst3 --version $(VERSION) --component build/M1-Notepad_artefacts/Release/VST3/M1-Notepad.vst3 \
+	pkgbuild --identifier $(BUNDLE_ID).vst3 --version $(VERSION) --component build/M1-Notepad_artefacts/Release/VST3/M1-Notepad.vst3 \
 	--install-location "/Library/Audio/Plug-Ins/VST3" build/M1-Notepad_artefacts/Release/M1-Notepad.vst3.pkg 
-	pkgbuild --identifier ${BUNDLE_ID}.aaxplugin --version ${VERSION} --component build/M1-Notepad_artefacts/Release/AAX/M1-Notepad.aaxplugin \
+	pkgbuild --identifier $(BUNDLE_ID).aaxplugin --version $(VERSION) --component build/M1-Notepad_artefacts/Release/AAX/M1-Notepad.aaxplugin \
 	--install-location "/Library/Application\ Support/Avid/Audio/Plug-Ins" build/M1-Notepad_artefacts/Release/M1-Notepad.aaxplugin.pkg 
 	productbuild --synthesize \
 	--package "build/M1-Notepad_artefacts/Release/M1-Notepad.au.pkg" \
