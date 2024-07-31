@@ -44,7 +44,7 @@ jobs:
         lfs: true
         fetch-depth: 1
 
-    # TODO: Consolidate this by figuring out how to path to a universal .workspace
+    # TODO: Consolidate cmake steps by using the proper universal path var
     - name: Create Build Environment (macos)
       if: runner.os == 'MacOS'
       run: cmake -E make_directory ${{ github.workspace }}/build
