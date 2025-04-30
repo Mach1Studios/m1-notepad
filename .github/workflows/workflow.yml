@@ -5,7 +5,7 @@ on: [push, pull_request]
 env:
   BUILD_TYPE: Release
   BUNDLE_ID: com.mach1.notepad
-  VERSION: 1.0.2
+  VERSION: 1.1.0
 
 jobs:
   build:
@@ -132,7 +132,7 @@ jobs:
 
     - name: 'Upload Artifact (macos)'
       if: runner.os == 'MacOS'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: M1-Notepad (MacOS)
         path: ${{ github.workspace }}/build/M1-Notepad_artefacts/Release/M1-Notepad.pkg
@@ -140,7 +140,7 @@ jobs:
 
     - name: 'Upload Artifact (windows)'
       if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: M1-Notepad (Windows)
         path: ${{ runner.workspace }}\build\M1-Notepad_artefacts\Release\Output\M1-Notepad_WIN.exe
