@@ -33,17 +33,6 @@ jobs:
         ref: '8.0.0'
         fetch-depth: 1
 
-    # TODO: Change to allow for windows too after resolving pull errors on github actions
-    - name: Submodule JUCE_deps
-      if: runner.os == 'MacOS'
-      uses: actions/checkout@v4
-      with:
-        repository: Mach1Studios/m1-juce-deps
-        path: JUCE_deps
-        ssh-key: ${{ secrets.HIMWHO_SSH_KEY }}
-        lfs: true
-        fetch-depth: 1
-
     # TODO: Consolidate cmake steps by using the proper universal path var
     - name: Create Build Environment (macos)
       if: runner.os == 'MacOS'
