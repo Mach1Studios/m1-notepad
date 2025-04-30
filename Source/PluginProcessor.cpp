@@ -20,7 +20,7 @@ NotePadAudioProcessor::NotePadAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ),
-treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce::AudioParameterFloat>("gain", "Gain", -48.0f, 0.0f, -15.0f) })
+treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("gain", 1), "Gain", -48.0f, 0.0f, -15.0f) })
 #endif
 {
     // Create a treestate child property to store the text as a giant string
@@ -166,8 +166,10 @@ void NotePadAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
     
-    // Save sessionText as raw string
-    juce::MemoryOutputStream(destData,true).writeString(treeState.state.getProperty("SessionText"));
+    // Instead of just saving SessionText, save the entire tree state to include todo items
+    auto state = treeState.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -175,8 +177,21 @@ void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInByt
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
 
-    // Load sessionText as raw string
-    treeState.state.setProperty("SessionText", juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString(), nullptr);
+    // Load the entire tree state
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    
+    if (xmlState.get() != nullptr)
+    {
+        if (xmlState->hasTagName(treeState.state.getType()))
+        {
+            treeState.replaceState(juce::ValueTree::fromXml(*xmlState));
+        }
+    }
+    else
+    {
+        // Fallback for backward compatibility - load just the session text
+        treeState.state.setProperty("SessionText", juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString(), nullptr);
+    }
 }
 
 //==============================================================================

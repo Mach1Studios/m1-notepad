@@ -13,14 +13,21 @@ endif
 VERSION := $(shell grep VERSION: .github/workflows/workflow.yml | cut -d ':' -f 2 | cut -d ' ' -f 2 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 BUNDLEID := $(shell grep BUNDLE_ID: .github/workflows/workflow.yml | cut -d ':' -f 2 | sed '1p;d' | cut -d ' ' -f 2 )
 
+clean:
+	rm -rf build
+
 setup-codesigning:
 ifeq ($(detected_OS),Darwin)
 	security find-identity -p basic -v
 	xcrun notarytool store-credentials 'notarize-app' --apple-id $(APPLE_USERNAME) --team-id $(APPLE_TEAM_CODE) --password $(ALTOOL_APPPASS)
 endif
 
-configure: 
-	cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release
+configure: clean
+ifeq ($(detected_OS),Darwin)
+	cmake . -Bbuild -G "Xcode" -DJUCE_COPY_PLUGIN_AFTER_BUILD=ON
+else
+	cmake . -Bbuild -DJUCE_COPY_PLUGIN_AFTER_BUILD=ON
+endif
 
 build: configure
 	cmake --build build --config "Release"

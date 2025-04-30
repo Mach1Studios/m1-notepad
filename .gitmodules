@@ -1,6 +1,3 @@
 [submodule "JUCE"]
 	path = JUCE
 	url = https://github.com/juce-framework/JUCE.git
-[submodule "JUCE_deps"]
-	path = JUCE_deps
-	url = git@github.com:Mach1Studios/m1-juce-deps.git
