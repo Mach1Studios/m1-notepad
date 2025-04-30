@@ -56,6 +56,10 @@ public:
     
     juce::AudioProcessorValueTreeState treeState;
     juce::String pSessionText; // Use this to check and debug text passed back to Processor
+    
+    // Todo functionality helpers
+    bool isTodoMode() const { return treeState.state.getProperty("TodoMode", false); }
+    void setTodoMode(bool todoMode) { treeState.state.setProperty("TodoMode", todoMode, nullptr); }
 
 private:
     //==============================================================================    

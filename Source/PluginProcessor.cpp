@@ -25,6 +25,12 @@ treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce
 {
     // Create a treestate child property to store the text as a giant string
     treeState.state.getOrCreateChildWithName("SessionText", nullptr);
+    
+    // Create a treestate child property to store todo items
+    treeState.state.getOrCreateChildWithName("TodoItems", nullptr);
+    
+    // Initialize todo mode property
+    treeState.state.setProperty("TodoMode", false, nullptr);
 }
 
 NotePadAudioProcessor::~NotePadAudioProcessor()
