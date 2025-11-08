@@ -59,6 +59,7 @@ public:
     
     std::unique_ptr<juce::TextEditor> m1TextEditor;
     std::unique_ptr<juce::ToggleButton> todoCheckbox;
+    std::unique_ptr<juce::ToggleButton> passThroughButton;
     std::unique_ptr<juce::TextEditor> todoInputField;
     std::unique_ptr<juce::ComboBox> priorityCombo;
     std::unique_ptr<juce::TextEditor> searchField;

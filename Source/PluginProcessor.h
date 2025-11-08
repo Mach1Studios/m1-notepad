@@ -61,6 +61,10 @@ public:
     bool isTodoMode() const { return treeState.state.getProperty("TodoMode", false); }
     void setTodoMode(bool todoMode) { treeState.state.setProperty("TodoMode", todoMode, nullptr); }
 
+     // Pass through mode getter setter
+     bool isAudioPassThrough() const { return treeState.state.getProperty("PassThrough", true); }
+     void setAudioPassThrough(bool passThrough) { treeState.state.setProperty("PassThrough", passThrough, nullptr); }
+
 private:
     //==============================================================================    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NotePadAudioProcessor)

@@ -31,6 +31,9 @@ treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce
     
     // Initialize todo mode property
     treeState.state.setProperty("TodoMode", false, nullptr);
+
+    // Add pass through mode property
+    treeState.state.setProperty("PassThrough", true, nullptr);
 }
 
 NotePadAudioProcessor::~NotePadAudioProcessor()
@@ -141,16 +144,24 @@ void NotePadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    bool audioPassThrough = isAudioPassThrough();
+
+    if (!audioPassThrough)
+    {
+        // Mute: clear all output channels
+        buffer.clear();
+    }
+    // If audioPassThrough is true, the audio already passes through (input is already in output channels)
     
-    //TODO: bypass processing
+    // In case we have more outputs than inputs, clear any output
+    // channels that didn't contain input data (only needed when pass-through is enabled)
+    if (audioPassThrough)
+    {
+        for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        {
+            buffer.clear (i, 0, buffer.getNumSamples());
+        }
+    }
 }
 
 //==============================================================================

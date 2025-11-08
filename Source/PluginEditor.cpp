@@ -37,6 +37,13 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     todoCheckbox->setToggleState(audioProcessor.isTodoMode(), juce::dontSendNotification);
     todoCheckbox->setColour(juce::ToggleButton::textColourId, juce::Colours::white);
     
+    // Pass through button setup
+    passThroughButton.reset(new juce::ToggleButton("Audio Pass-Through"));
+    addAndMakeVisible(passThroughButton.get());
+    passThroughButton->addListener(this);
+    passThroughButton->setToggleState(audioProcessor.isAudioPassThrough(), juce::dontSendNotification);
+    passThroughButton->setColour(juce::ToggleButton::textColourId, juce::Colours::white);
+    
     // Todo input field setup
     todoInputField.reset(new juce::TextEditor("todo input"));
     addAndMakeVisible(todoInputField.get());
@@ -64,6 +71,7 @@ NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
 {
     m1TextEditor = nullptr;
     todoCheckbox = nullptr;
+    passThroughButton = nullptr;
     todoInputField = nullptr;
     todoItems.clear();
     todoLabels.clear();
@@ -98,6 +106,9 @@ void NotePadAudioProcessorEditor::resized()
     
     // Position the todo mode controls
     todoCheckbox->setBounds(0, getHeight() - 50, 100, 24);
+    
+    // Position the pass-through button next to the todo checkbox
+    passThroughButton->setBounds(110, getHeight() - 50, 150, 24);
     
     // Position the todo input field and items if in todo mode
     if (audioProcessor.isTodoMode())
@@ -321,6 +332,12 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
             label->setVisible(todoMode);
             
         resized(); // Update layout
+    }
+    else if (button == passThroughButton.get())
+    {
+        // Toggle audio pass-through mode
+        bool passThrough = passThroughButton->getToggleState();
+        audioProcessor.setAudioPassThrough(passThrough);
     }
     else
     {
