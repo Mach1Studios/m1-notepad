@@ -10,11 +10,24 @@ else
 	detected_OS := $(shell uname)
 endif
 
-VERSION := $(shell grep VERSION: .github/workflows/workflow.yml | cut -d ':' -f 2 | cut -d ' ' -f 2 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-BUNDLEID := $(shell grep BUNDLE_ID: .github/workflows/workflow.yml | cut -d ':' -f 2 | sed '1p;d' | cut -d ' ' -f 2 )
+# Extract VERSION - prefer VERSION file, fallback to workflow.yml
+ifeq ($(detected_OS),Windows)
+	# Windows: read from VERSION file using PowerShell (handles newlines properly)
+	VERSION := $(shell powershell -NoProfile -Command "(Get-Content VERSION -Raw -ErrorAction SilentlyContinue).Trim()" 2>NUL || echo 1.1.0)
+	# Windows: default BUNDLE_ID (can be overridden via environment variable or Makefile.variables)
+	BUNDLEID := com.mach1.notepad
+else
+	# Unix/Linux/macOS: use VERSION file if available, otherwise parse workflow.yml
+	VERSION := $(shell if [ -f VERSION ]; then cat VERSION | tr -d '\r\n '; else grep VERSION: .github/workflows/workflow.yml 2>/dev/null | cut -d ':' -f 2 | cut -d ' ' -f 2 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo 1.1.0; fi)
+	BUNDLEID := $(shell grep BUNDLE_ID: .github/workflows/workflow.yml 2>/dev/null | head -n 1 | cut -d ':' -f 2 | cut -d ' ' -f 2 || echo com.mach1.notepad)
+endif
 
 clean:
+ifeq ($(detected_OS),Windows)
+	@powershell -NoProfile -Command "if (Test-Path build) { Remove-Item -Recurse -Force build }"
+else
 	rm -rf build
+endif
 
 setup-codesigning:
 ifeq ($(detected_OS),Darwin)
