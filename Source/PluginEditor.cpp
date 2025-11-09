@@ -13,7 +13,7 @@
 NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    m1TextEditor.reset(new juce::TextEditor("new text editor"));
+    m1TextEditor.reset(new StrikethroughTextEditor("new text editor"));
     addAndMakeVisible(m1TextEditor.get());
     m1TextEditor->addListener(this);
     m1TextEditor->setMultiLine(true);
@@ -25,6 +25,21 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     m1TextEditor->setTabKeyUsedAsCharacter(true);
     m1TextEditor->setTextToShowWhenEmpty("Keep session notes here...", juce::Colours::white);
     m1TextEditor->setText(audioProcessor.treeState.state.getProperty("SessionText")); // Grabs the string within property labeled "SessionText"
+    
+    // Load strikethrough ranges if they exist
+    auto strikethroughData = audioProcessor.treeState.state.getProperty("StrikethroughRanges").toString();
+    if (strikethroughData.isNotEmpty())
+    {
+        m1TextEditor->deserializeStrikethroughRanges(strikethroughData);
+    }
+    
+    // Set up callback to save strikethrough ranges when they change
+    m1TextEditor->onStrikethroughChanged = [this]()
+    {
+        auto strikethroughData = m1TextEditor->serializeStrikethroughRanges();
+        audioProcessor.treeState.state.setProperty("StrikethroughRanges", strikethroughData, nullptr);
+    };
+    
     m1TextEditor->setBounds(0, 0, 800, 512 - 20);
     m1TextEditor->setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromFloatRGBA(40.0f, 40.0f, 40.0f, 0.10f));
     m1TextEditor->setColour(juce::TextEditor::textColourId, juce::Colour::fromFloatRGBA(251.0f, 251.0f, 251.0f, 1.0f));
@@ -141,6 +156,16 @@ void NotePadAudioProcessorEditor::textEditorTextChanged (juce::TextEditor &edito
 {
     // On key changes will save editor's string to property labeled/tagged "SessionText"
     audioProcessor.treeState.state.setProperty("SessionText", editor.getText(), nullptr);
+    
+    // Save strikethrough ranges if this is the main text editor
+    if (&editor == m1TextEditor.get())
+    {
+        // Adjust strikethrough ranges when text changes
+        m1TextEditor->adjustStrikethroughRanges();
+        
+        auto strikethroughData = m1TextEditor->serializeStrikethroughRanges();
+        audioProcessor.treeState.state.setProperty("StrikethroughRanges", strikethroughData, nullptr);
+    }
 }
 
 void NotePadAudioProcessorEditor::textEditorReturnKeyPressed(juce::TextEditor& editor)
