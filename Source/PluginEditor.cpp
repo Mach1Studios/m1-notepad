@@ -38,7 +38,18 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     {
         auto strikethroughData = m1TextEditor->serializeStrikethroughRanges();
         audioProcessor.treeState.state.setProperty("StrikethroughRanges", strikethroughData, nullptr);
+        updateStrikethroughButtonState();
     };
+    
+    // Strikethrough button setup
+    strikethroughButton.reset(new StrikethroughButton());
+    addAndMakeVisible(strikethroughButton.get());
+    strikethroughButton->addListener(this);
+    strikethroughButton->setTooltip("Toggle strikethrough on selected text");
+    strikethroughButton->setVisible(!audioProcessor.isTodoMode()); // Only visible in note mode
+    
+    // Start timer to update button state when selection changes
+    startTimer(100); // Check every 100ms
     
     m1TextEditor->setBounds(0, 0, 800, 512 - 20);
     m1TextEditor->setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromFloatRGBA(40.0f, 40.0f, 40.0f, 0.10f));
@@ -77,9 +88,11 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
 
 NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
 {
+    stopTimer();
     m1TextEditor = nullptr;
     todoCheckbox = nullptr;
     todoInputField = nullptr;
+    strikethroughButton = nullptr;
     todoItems.clear();
     todoLabels.clear();
     todoEditors.clear();
@@ -108,8 +121,21 @@ void NotePadAudioProcessorEditor::resized()
         setSize(w, h);
     }
     
-    // Position the text editor for note mode
-    m1TextEditor->setBounds(0, 0, getWidth(), getHeight() - 60);
+    // Position the text editor for note mode (leave room for button at top)
+    int buttonHeight = 30;
+    int buttonTopSpacing = 5;
+    int buttonBottomSpacing = 5; // Match spacing above button
+    int totalButtonSpace = buttonHeight + buttonTopSpacing + buttonBottomSpacing;
+    int editorY = audioProcessor.isTodoMode() ? 0 : totalButtonSpace;
+    int editorHeight = audioProcessor.isTodoMode() ? getHeight() - 60 : getHeight() - 60 - totalButtonSpace;
+    m1TextEditor->setBounds(0, editorY, getWidth(), editorHeight);
+    
+    // Position strikethrough button (only in note mode)
+    if (strikethroughButton != nullptr)
+    {
+        strikethroughButton->setBounds(5, buttonTopSpacing, 50, buttonHeight);
+        strikethroughButton->setVisible(!audioProcessor.isTodoMode());
+    }
     
     // Position the todo mode controls
     todoCheckbox->setBounds(0, getHeight() - 50, 100, 24);
@@ -154,6 +180,9 @@ void NotePadAudioProcessorEditor::textEditorTextChanged (juce::TextEditor &edito
         
         auto strikethroughData = m1TextEditor->serializeStrikethroughRanges();
         audioProcessor.treeState.state.setProperty("StrikethroughRanges", strikethroughData, nullptr);
+        
+        // Update button state when text changes (selection might have moved)
+        updateStrikethroughButtonState();
     }
 }
 
@@ -339,6 +368,10 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
         m1TextEditor->setVisible(!todoMode);
         todoInputField->setVisible(todoMode);
         
+        // Show/hide strikethrough button based on mode
+        if (strikethroughButton != nullptr)
+            strikethroughButton->setVisible(!todoMode);
+        
         // Show/hide todo items based on mode
         for (auto& checkbox : todoItems)
             checkbox->setVisible(todoMode);
@@ -346,6 +379,16 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
             label->setVisible(todoMode);
             
         resized(); // Update layout
+    }
+    else if (button == strikethroughButton.get())
+    {
+        // Handle strikethrough button click
+        auto selRange = m1TextEditor->getHighlightedRegion();
+        if (selRange.getLength() > 0)
+        {
+            m1TextEditor->toggleStrikethrough(selRange);
+            updateStrikethroughButtonState();
+        }
     }
     else
     {
@@ -524,4 +567,23 @@ juce::Colour NotePadAudioProcessorEditor::getPriorityColour(Priority p) const
         case Priority::Low: return juce::Colours::white;
         default: return juce::Colours::white;
     }
+}
+
+void NotePadAudioProcessorEditor::updateStrikethroughButtonState()
+{
+    if (strikethroughButton == nullptr || m1TextEditor == nullptr)
+        return;
+        
+    auto selRange = m1TextEditor->getHighlightedRegion();
+    bool hasSelection = selRange.getLength() > 0;
+    bool isStrikethrough = hasSelection && m1TextEditor->isRangeStrikethrough(selRange);
+    
+    strikethroughButton->setActive(isStrikethrough);
+    strikethroughButton->setEnabled(hasSelection && !m1TextEditor->isReadOnly());
+}
+
+void NotePadAudioProcessorEditor::timerCallback()
+{
+    // Update strikethrough button state when selection changes
+    updateStrikethroughButtonState();
 }

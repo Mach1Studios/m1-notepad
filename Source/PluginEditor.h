@@ -13,6 +13,70 @@
 
 //==============================================================================
 /**
+ * Custom button that displays a strikethrough icon
+ */
+class StrikethroughButton : public juce::Button
+{
+public:
+    StrikethroughButton() : juce::Button("Strikethrough"), isActive(false) {}
+    
+    void setActive(bool active)
+    {
+        if (isActive != active)
+        {
+            isActive = active;
+            repaint();
+        }
+    }
+    
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat();
+        
+        // If selection is strikethrough, show button as active (pressed)
+        bool drawAsActive = isActive || shouldDrawButtonAsDown;
+        
+        auto bgColour = drawAsActive ? juce::Colour::fromFloatRGBA(0.4f, 0.5f, 0.6f, 1.0f) :
+                          shouldDrawButtonAsHighlighted ? juce::Colour::fromFloatRGBA(0.25f, 0.25f, 0.25f, 1.0f) :
+                          juce::Colour::fromFloatRGBA(0.2f, 0.2f, 0.2f, 1.0f);
+        
+        // Draw button background
+        g.setColour(bgColour);
+        g.fillRoundedRectangle(bounds, 3.0f);
+        
+        // Draw border - thicker if active
+        g.setColour(drawAsActive ? juce::Colours::lightblue : juce::Colours::white.withAlpha(0.3f));
+        g.drawRoundedRectangle(bounds, 3.0f, drawAsActive ? 2.0f : 1.0f);
+        
+        // Draw strikethrough icon (horizontal line through text "abc")
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::Font(14.0f, juce::Font::plain));
+        
+        juce::String text = "abc";
+        auto textBounds = bounds.reduced(4.0f);
+        auto textWidth = g.getCurrentFont().getStringWidth(text);
+        auto textX = (bounds.getWidth() - textWidth) / 2.0f;
+        auto textY = bounds.getCentreY();
+        
+        // Draw the text
+        g.drawText(text, textBounds, juce::Justification::centred);
+        
+        // Draw the strikethrough line - always visible to show what the button does
+        float lineY = textY;
+        float lineX1 = textX - 2.0f;
+        float lineX2 = textX + textWidth + 2.0f;
+        float lineThickness = drawAsActive ? 2.5f : 2.0f;
+        g.setColour(drawAsActive ? juce::Colours::lightblue : juce::Colours::white);
+        g.drawLine(lineX1, lineY, lineX2, lineY, lineThickness);
+    }
+    
+private:
+    bool isActive;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StrikethroughButton)
+};
+
+//==============================================================================
+/**
  * Custom TextEditor with strikethrough support
  */
 class StrikethroughTextEditor : public juce::TextEditor
@@ -117,6 +181,30 @@ public:
                 return true;
         }
         return false;
+    }
+    
+    // Check if an entire range is strikethrough
+    bool isRangeStrikethrough(juce::Range<int> range) const
+    {
+        if (range.getLength() <= 0)
+            return false;
+            
+        // Check if all characters in the range are strikethrough
+        for (int i = range.getStart(); i < range.getEnd(); ++i)
+        {
+            bool hasStrike = false;
+            for (auto& r : strikethroughRanges)
+            {
+                if (r.contains(i))
+                {
+                    hasStrike = true;
+                    break;
+                }
+            }
+            if (!hasStrike)
+                return false;
+        }
+        return true;
     }
     
     juce::Array<juce::Range<int>> getStrikethroughRanges() const { return strikethroughRanges; }
@@ -297,7 +385,8 @@ private:
 */
 class NotePadAudioProcessorEditor  : public juce::AudioProcessorEditor, 
                                     public juce::TextEditor::Listener,
-                                    public juce::Button::Listener
+                                    public juce::Button::Listener,
+                                    public juce::Timer
 {
 public:
     enum class Priority { Low, Medium, High };
@@ -343,6 +432,7 @@ public:
     std::unique_ptr<juce::TextEditor> todoInputField;
     std::unique_ptr<juce::ComboBox> priorityCombo;
     std::unique_ptr<juce::TextEditor> searchField;
+    std::unique_ptr<StrikethroughButton> strikethroughButton;
     juce::OwnedArray<juce::ToggleButton> todoItems;
     juce::OwnedArray<juce::Label> todoLabels;
     juce::OwnedArray<juce::TextEditor> todoEditors;
@@ -360,6 +450,8 @@ private:
     
     void updatePriorityColors();
     juce::Colour getPriorityColour(Priority p) const;
+    void updateStrikethroughButtonState();
+    void timerCallback() override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NotePadAudioProcessorEditor)
 };
