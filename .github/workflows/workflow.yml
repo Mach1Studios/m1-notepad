@@ -5,7 +5,6 @@ on: [push, pull_request]
 env:
   BUILD_TYPE: Release
   BUNDLE_ID: com.mach1.notepad
-  VERSION: 1.1.0
 
 jobs:
   build:
@@ -32,6 +31,11 @@ jobs:
         path: JUCE
         ref: '8.0.0'
         fetch-depth: 1
+
+    - name: Set variables
+      run: |
+        VER=$(cat VERSION)
+        echo "VERSION=$VER" >> $GITHUB_ENV
 
     # TODO: Consolidate cmake steps by using the proper universal path var
     - name: Create Build Environment (macos)
