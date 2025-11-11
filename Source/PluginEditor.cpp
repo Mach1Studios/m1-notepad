@@ -108,16 +108,32 @@ void NotePadAudioProcessorEditor::paint (juce::Graphics& g)
     g.setFont(juce::Font(16.0f));
     g.setColour(juce::Colours::white);
     
-    // Draw divider line between notepad and todo panes
-    int dividerX = getWidth() / 2;
-    g.setColour(juce::Colours::white.withAlpha(0.5f));
-    g.drawVerticalLine(dividerX, 0.0f, static_cast<float>(getHeight()));
-    // Draw a second line slightly offset for a subtle 3D effect
-    g.setColour(juce::Colours::black.withAlpha(0.3f));
-    g.drawVerticalLine(dividerX + 1, 0.0f, static_cast<float>(getHeight()));
-    
     //m1logo
     g.drawImageWithin(m1logo, -15, getHeight() - 17, 161 / 2, 39 / 4, juce::RectanglePlacement());
+}
+
+void NotePadAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
+{
+    // Draw strong thick divider line between notepad and todo panes - extends all the way to the top
+    // This is drawn over children to ensure it's always visible, even in the header area
+    int dividerWidth = 4; // Thick divider width for strong visibility (must match resized())
+    int dividerX = getWidth() / 2;
+    
+    // Draw a thick solid divider bar from the very top (y=0) to the bottom
+    // Center the divider at the midpoint
+    int dividerStartX = dividerX - dividerWidth / 2;
+    int componentHeight = getHeight();
+    
+    // Draw the main divider with a solid, highly visible color
+    // Use a bright gray/white that stands out clearly against the dark background
+    juce::Rectangle<int> dividerRect(dividerStartX, 0, dividerWidth, componentHeight);
+    g.setColour(juce::Colour::fromFloatRGBA(0.7f, 0.7f, 0.7f, 1.0f)); // Bright gray, fully opaque for strong visibility
+    g.fillRect(dividerRect);
+    
+    // Add a bright white highlight on the left edge for extra visibility and definition
+    g.setColour(juce::Colours::white.withAlpha(0.8f));
+    g.drawLine(static_cast<float>(dividerStartX), 0.0f, 
+               static_cast<float>(dividerStartX), static_cast<float>(componentHeight), 1.5f);
 }
 
 void NotePadAudioProcessorEditor::resized()
@@ -133,7 +149,7 @@ void NotePadAudioProcessorEditor::resized()
     
     // Calculate split point (vertical divider in the middle)
     int dividerX = getWidth() / 2;
-    int dividerWidth = 2; // Width of the divider line
+    int dividerWidth = 4; // Width of the divider line (must match paintOverChildren)
     
     // Left pane: Notepad
     int notepadWidth = dividerX;
