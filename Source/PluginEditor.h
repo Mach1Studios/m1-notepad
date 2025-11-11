@@ -411,6 +411,7 @@ public:
     void textEditorReturnKeyPressed (juce::TextEditor &editor) override;
     void buttonClicked (juce::Button* button) override;
     void mouseDoubleClick(const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent& e) override;
     bool keyPressed(const juce::KeyPress& key) override;
     void addTodoItem(const TodoItem& item);
     void addTodoItem(const juce::String& text, bool checked);
