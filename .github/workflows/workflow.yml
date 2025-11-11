@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy: 
       matrix:
-        os: [macos-latest, windows-2019]
+        os: [macos-latest, windows-latest]
 
     steps:
     - name: Set up custom git config
@@ -29,7 +29,6 @@ jobs:
       with:
         repository: juce-framework/JUCE
         path: JUCE
-        ref: '8.0.0'
         fetch-depth: 1
 
     - name: Set variables
