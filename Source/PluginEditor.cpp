@@ -48,6 +48,17 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     strikethroughButton->setTooltip("Toggle strikethrough on selected text");
     strikethroughButton->setVisible(true); // Always visible in notepad area
     
+    // Fullscreen buttons setup
+    leftFullscreenButton.reset(new FullscreenButton("LeftFullscreen"));
+    addAndMakeVisible(leftFullscreenButton.get());
+    leftFullscreenButton->addListener(this);
+    leftFullscreenButton->setTooltip("Fullscreen notepad");
+    
+    rightFullscreenButton.reset(new FullscreenButton("RightFullscreen"));
+    addAndMakeVisible(rightFullscreenButton.get());
+    rightFullscreenButton->addListener(this);
+    rightFullscreenButton->setTooltip("Fullscreen todo list");
+    
     // Start timer to update button state when selection changes
     startTimer(100); // Check every 100ms
     
@@ -95,6 +106,8 @@ NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
     todoCheckbox = nullptr;
     todoInputField = nullptr;
     strikethroughButton = nullptr;
+    leftFullscreenButton = nullptr;
+    rightFullscreenButton = nullptr;
     todoItems.clear();
     todoLabels.clear();
     todoEditors.clear();
@@ -114,26 +127,30 @@ void NotePadAudioProcessorEditor::paint (juce::Graphics& g)
 
 void NotePadAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
 {
-    // Draw strong thick divider line between notepad and todo panes - extends all the way to the top
-    // This is drawn over children to ensure it's always visible, even in the header area
-    int dividerWidth = 4; // Thick divider width for strong visibility (must match resized())
-    int dividerX = getWidth() / 2;
-    
-    // Draw a thick solid divider bar from the very top (y=0) to the bottom
-    // Center the divider at the midpoint
-    int dividerStartX = dividerX - dividerWidth / 2;
-    int componentHeight = getHeight();
-    
-    // Draw the main divider with a solid, highly visible color
-    // Use a bright gray/white that stands out clearly against the dark background
-    juce::Rectangle<int> dividerRect(dividerStartX, 0, dividerWidth, componentHeight);
-    g.setColour(juce::Colour::fromFloatRGBA(0.7f, 0.7f, 0.7f, 1.0f)); // Bright gray, fully opaque for strong visibility
-    g.fillRect(dividerRect);
-    
-    // Add a bright white highlight on the left edge for extra visibility and definition
-    g.setColour(juce::Colours::white.withAlpha(0.8f));
-    g.drawLine(static_cast<float>(dividerStartX), 0.0f, 
-               static_cast<float>(dividerStartX), static_cast<float>(componentHeight), 1.5f);
+    // Only draw divider if not in fullscreen mode
+    if (fullscreenMode == FullscreenMode::None)
+    {
+        // Draw strong thick divider line between notepad and todo panes - extends all the way to the top
+        // This is drawn over children to ensure it's always visible, even in the header area
+        int dividerWidth = 4; // Thick divider width for strong visibility (must match resized())
+        int dividerX = getWidth() / 2;
+        
+        // Draw a thick solid divider bar from the very top (y=0) to the bottom
+        // Center the divider at the midpoint
+        int dividerStartX = dividerX - dividerWidth / 2;
+        int componentHeight = getHeight();
+        
+        // Draw the main divider with a solid, highly visible color
+        // Use a bright gray/white that stands out clearly against the dark background
+        juce::Rectangle<int> dividerRect(dividerStartX, 0, dividerWidth, componentHeight);
+        g.setColour(juce::Colour::fromFloatRGBA(0.7f, 0.7f, 0.7f, 1.0f)); // Bright gray, fully opaque for strong visibility
+        g.fillRect(dividerRect);
+        
+        // Add a bright white highlight on the left edge for extra visibility and definition
+        g.setColour(juce::Colours::white.withAlpha(0.8f));
+        g.drawLine(static_cast<float>(dividerStartX), 0.0f, 
+                   static_cast<float>(dividerStartX), static_cast<float>(componentHeight), 1.5f);
+    }
 }
 
 void NotePadAudioProcessorEditor::resized()
@@ -147,63 +164,215 @@ void NotePadAudioProcessorEditor::resized()
         setSize(w, h);
     }
     
-    // Calculate split point (vertical divider in the middle)
-    int dividerX = getWidth() / 2;
-    int dividerWidth = 4; // Width of the divider line (must match paintOverChildren)
-    
-    // Left pane: Notepad
-    int notepadWidth = dividerX;
     int buttonHeight = 30;
     int buttonTopSpacing = 5;
     int buttonBottomSpacing = 5;
     int totalButtonSpace = buttonHeight + buttonTopSpacing + buttonBottomSpacing;
+    int fullscreenButtonSize = 24;
+    int fullscreenButtonMargin = 5;
     
-    // Position strikethrough button in notepad area
-    if (strikethroughButton != nullptr)
+    if (fullscreenMode == FullscreenMode::Left)
     {
-        strikethroughButton->setBounds(5, buttonTopSpacing, 50, buttonHeight);
-    }
-    
-    // Position text editor in left pane (below button)
-    int editorY = totalButtonSpace;
-    int editorHeight = getHeight() - editorY;
-    m1TextEditor->setBounds(0, editorY, notepadWidth, editorHeight);
-    
-    // Right pane: Todo list
-    int todoPaneX = dividerX + dividerWidth;
-    int todoPaneWidth = getWidth() - todoPaneX;
-    int todoY = 10;
-    int inputFieldHeight = 24;
-    int inputFieldY = getHeight() - inputFieldHeight - 10; // Leave some space at bottom
-    
-    // Position todo items in right pane
-    for (int i = 0; i < todoItems.size(); ++i)
-    {
-        int itemX = todoPaneX + 10;
-        int itemWidth = todoPaneWidth - 20;
+        // Fullscreen left pane (notepad)
+        int notepadWidth = getWidth();
         
-        // Always show all items (they may overflow, but that's okay)
-        todoItems[i]->setVisible(true);
-        todoItems[i]->setBounds(itemX, todoY, 22, 20);
-        
-        if (todoEditors[i] != nullptr && todoEditors[i]->isVisible())
+        // Position strikethrough button in notepad area
+        if (strikethroughButton != nullptr)
         {
-            todoEditors[i]->setVisible(true);
-            todoEditors[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
-        }
-        else
-        {
-            todoLabels[i]->setVisible(true);
-            todoLabels[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
+            strikethroughButton->setBounds(5, buttonTopSpacing, 50, buttonHeight);
         }
         
-        todoY += 30;
+        // Position fullscreen button in top-right corner
+        if (leftFullscreenButton != nullptr)
+        {
+            leftFullscreenButton->setBounds(getWidth() - fullscreenButtonSize - fullscreenButtonMargin, 
+                                           fullscreenButtonMargin, 
+                                           fullscreenButtonSize, 
+                                           fullscreenButtonSize);
+            leftFullscreenButton->setFullscreen(true);
+            leftFullscreenButton->setVisible(true);
+            leftFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        if (rightFullscreenButton != nullptr)
+        {
+            rightFullscreenButton->setVisible(false);
+        }
+        
+        // Position text editor to fill entire width
+        int editorY = totalButtonSpace;
+        int editorHeight = getHeight() - editorY;
+        m1TextEditor->setBounds(0, editorY, notepadWidth, editorHeight);
+        
+        // Hide todo pane components
+        todoInputField->setVisible(false);
+        for (int i = 0; i < todoItems.size(); ++i)
+        {
+            todoItems[i]->setVisible(false);
+            todoLabels[i]->setVisible(false);
+            if (todoEditors[i] != nullptr)
+                todoEditors[i]->setVisible(false);
+        }
     }
-    
-    // Position input field at the bottom of todo pane
-    int inputFieldX = todoPaneX + 10;
-    int inputFieldWidth = todoPaneWidth - 20;
-    todoInputField->setBounds(inputFieldX, inputFieldY, inputFieldWidth, inputFieldHeight);
+    else if (fullscreenMode == FullscreenMode::Right)
+    {
+        // Fullscreen right pane (todo list)
+        int todoPaneX = 0;
+        int todoPaneWidth = getWidth();
+        int todoY = 10;
+        int inputFieldHeight = 24;
+        int inputFieldY = getHeight() - inputFieldHeight - 10;
+        
+        // Hide notepad components
+        if (strikethroughButton != nullptr)
+        {
+            strikethroughButton->setVisible(false);
+        }
+        m1TextEditor->setVisible(false);
+        
+        // Position fullscreen button in top-right corner
+        int buttonX = getWidth() - fullscreenButtonSize - fullscreenButtonMargin;
+        if (rightFullscreenButton != nullptr)
+        {
+            rightFullscreenButton->setBounds(buttonX, 
+                                            fullscreenButtonMargin, 
+                                            fullscreenButtonSize, 
+                                            fullscreenButtonSize);
+            rightFullscreenButton->setFullscreen(true);
+            rightFullscreenButton->setVisible(true);
+            rightFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        if (leftFullscreenButton != nullptr)
+        {
+            leftFullscreenButton->setVisible(false);
+        }
+        
+        // Calculate button area to avoid overlap with todo items
+        // Leave space for the button plus some padding
+        int buttonAreaStart = buttonX - 10; // Button area starts 10px before the button
+        
+        // Position todo items (but avoid button area)
+        for (int i = 0; i < todoItems.size(); ++i)
+        {
+            int itemX = todoPaneX + 10;
+            // Make sure labels don't extend into button area
+            int maxItemWidth = buttonAreaStart - itemX - 30; // Leave space for checkbox (22px) and padding (8px)
+            // Ensure we don't go negative or too small
+            int itemWidth = juce::jmax(50, juce::jmin(todoPaneWidth - 20, maxItemWidth));
+            
+            todoItems[i]->setVisible(true);
+            todoItems[i]->setBounds(itemX, todoY, 22, 20);
+            
+            if (todoEditors[i] != nullptr && todoEditors[i]->isVisible())
+            {
+                todoEditors[i]->setVisible(true);
+                todoEditors[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
+            }
+            else
+            {
+                todoLabels[i]->setVisible(true);
+                todoLabels[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
+            }
+            
+            todoY += 30;
+        }
+        
+        // Position input field at the bottom
+        int inputFieldX = todoPaneX + 10;
+        int inputFieldWidth = todoPaneWidth - 20;
+        todoInputField->setBounds(inputFieldX, inputFieldY, inputFieldWidth, inputFieldHeight);
+        todoInputField->setVisible(true);
+    }
+    else
+    {
+        // Split view mode (default)
+        // Calculate split point (vertical divider in the middle)
+        int dividerX = getWidth() / 2;
+        int dividerWidth = 4; // Width of the divider line (must match paintOverChildren)
+        
+        // Left pane: Notepad
+        int notepadWidth = dividerX;
+        
+        // Position strikethrough button in notepad area
+        if (strikethroughButton != nullptr)
+        {
+            strikethroughButton->setBounds(5, buttonTopSpacing, 50, buttonHeight);
+            strikethroughButton->setVisible(true);
+        }
+        
+        // Position left fullscreen button in top-right of left pane
+        if (leftFullscreenButton != nullptr)
+        {
+            leftFullscreenButton->setBounds(notepadWidth - fullscreenButtonSize - fullscreenButtonMargin, 
+                                           fullscreenButtonMargin, 
+                                           fullscreenButtonSize, 
+                                           fullscreenButtonSize);
+            leftFullscreenButton->setFullscreen(false);
+            leftFullscreenButton->setVisible(true);
+            leftFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        
+        // Position text editor in left pane (below button)
+        int editorY = totalButtonSpace;
+        int editorHeight = getHeight() - editorY;
+        m1TextEditor->setBounds(0, editorY, notepadWidth, editorHeight);
+        m1TextEditor->setVisible(true);
+        
+        // Right pane: Todo list
+        int todoPaneX = dividerX + dividerWidth;
+        int todoPaneWidth = getWidth() - todoPaneX;
+        int todoY = 10;
+        int inputFieldHeight = 24;
+        int inputFieldY = getHeight() - inputFieldHeight - 10;
+        
+        // Position right fullscreen button in top-right of right pane
+        int buttonX = getWidth() - fullscreenButtonSize - fullscreenButtonMargin;
+        if (rightFullscreenButton != nullptr)
+        {
+            rightFullscreenButton->setBounds(buttonX, 
+                                            fullscreenButtonMargin, 
+                                            fullscreenButtonSize, 
+                                            fullscreenButtonSize);
+            rightFullscreenButton->setFullscreen(false);
+            rightFullscreenButton->setVisible(true);
+            rightFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        
+        // Calculate button area to avoid overlap with todo items
+        // Leave space for the button plus some padding
+        int buttonAreaStart = buttonX - 10; // Button area starts 10px before the button
+        
+        // Position todo items in right pane (but avoid button area)
+        for (int i = 0; i < todoItems.size(); ++i)
+        {
+            int itemX = todoPaneX + 10;
+            // Make sure labels don't extend into button area
+            int maxItemWidth = buttonAreaStart - itemX - 30; // Leave space for checkbox (22px) and padding (8px)
+            // Ensure we don't go negative or too small
+            int itemWidth = juce::jmax(50, juce::jmin(todoPaneWidth - 20, maxItemWidth));
+            
+            todoItems[i]->setVisible(true);
+            todoItems[i]->setBounds(itemX, todoY, 22, 20);
+            
+            if (todoEditors[i] != nullptr && todoEditors[i]->isVisible())
+            {
+                todoEditors[i]->setVisible(true);
+                todoEditors[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
+            }
+            else
+            {
+                todoLabels[i]->setVisible(true);
+                todoLabels[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
+            }
+            
+            todoY += 30;
+        }
+        
+        // Position input field at the bottom of todo pane
+        int inputFieldX = todoPaneX + 10;
+        int inputFieldWidth = todoPaneWidth - 20;
+        todoInputField->setBounds(inputFieldX, inputFieldY, inputFieldWidth, inputFieldHeight);
+        todoInputField->setVisible(true);
+    }
 }
 
 void NotePadAudioProcessorEditor::textEditorTextChanged (juce::TextEditor &editor)
@@ -427,6 +596,22 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
             updateStrikethroughButtonState();
         }
     }
+    else if (button == leftFullscreenButton.get())
+    {
+        // Toggle left pane fullscreen
+        if (fullscreenMode == FullscreenMode::Left)
+            toggleFullscreen(FullscreenMode::None); // Restore to split view
+        else
+            toggleFullscreen(FullscreenMode::Left); // Fullscreen left pane
+    }
+    else if (button == rightFullscreenButton.get())
+    {
+        // Toggle right pane fullscreen
+        if (fullscreenMode == FullscreenMode::Right)
+            toggleFullscreen(FullscreenMode::None); // Restore to split view
+        else
+            toggleFullscreen(FullscreenMode::Right); // Fullscreen right pane
+    }
     else
     {
         // Check if it's one of the todo checkboxes
@@ -485,9 +670,17 @@ void NotePadAudioProcessorEditor::updateTodoItemsState()
 
 void NotePadAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& e)
 {
+    // Don't handle mouse events if clicking on fullscreen buttons
+    if (leftFullscreenButton != nullptr && leftFullscreenButton->isVisible() && 
+        leftFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    if (rightFullscreenButton != nullptr && rightFullscreenButton->isVisible() && 
+        rightFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    
     // Only handle double-click in todo area (right pane)
-    int dividerX = getWidth() / 2;
-    if (e.getPosition().x > dividerX)
+    int dividerX = (fullscreenMode == FullscreenMode::None) ? getWidth() / 2 : 0;
+    if (fullscreenMode == FullscreenMode::Right || (fullscreenMode == FullscreenMode::None && e.getPosition().x > dividerX))
     {
         for (int i = 0; i < todoLabels.size(); ++i)
         {
@@ -502,9 +695,17 @@ void NotePadAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& e)
 
 void NotePadAudioProcessorEditor::mouseDown(const juce::MouseEvent& e)
 {
+    // Don't handle mouse events if clicking on fullscreen buttons
+    if (leftFullscreenButton != nullptr && leftFullscreenButton->isVisible() && 
+        leftFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    if (rightFullscreenButton != nullptr && rightFullscreenButton->isVisible() && 
+        rightFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    
     // Set up drag start index for todo item reordering
-    int dividerX = getWidth() / 2;
-    if (e.getPosition().x > dividerX)
+    int dividerX = (fullscreenMode == FullscreenMode::None) ? getWidth() / 2 : 0;
+    if (fullscreenMode == FullscreenMode::Right || (fullscreenMode == FullscreenMode::None && e.getPosition().x > dividerX))
     {
         for (int i = 0; i < todoLabels.size(); ++i)
         {
@@ -649,4 +850,11 @@ void NotePadAudioProcessorEditor::timerCallback()
 {
     // Update strikethrough button state when selection changes
     updateStrikethroughButtonState();
+}
+
+void NotePadAudioProcessorEditor::toggleFullscreen(FullscreenMode mode)
+{
+    fullscreenMode = mode;
+    resized();
+    repaint();
 }

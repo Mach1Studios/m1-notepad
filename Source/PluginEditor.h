@@ -382,6 +382,71 @@ private:
 
 //==============================================================================
 /**
+ * Custom button that displays a maximize/restore icon
+ */
+class FullscreenButton : public juce::Button
+{
+public:
+    FullscreenButton(const juce::String& name) : juce::Button(name), isFullscreen(false) {}
+    
+    void setFullscreen(bool fullscreen)
+    {
+        if (isFullscreen != fullscreen)
+        {
+            isFullscreen = fullscreen;
+            repaint();
+        }
+    }
+    
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+        
+        // Draw button background
+        auto bgColour = shouldDrawButtonAsHighlighted ? juce::Colour::fromFloatRGBA(0.3f, 0.3f, 0.3f, 1.0f) :
+                          shouldDrawButtonAsDown ? juce::Colour::fromFloatRGBA(0.4f, 0.4f, 0.4f, 1.0f) :
+                          juce::Colour::fromFloatRGBA(0.2f, 0.2f, 0.2f, 0.8f);
+        
+        g.setColour(bgColour);
+        g.fillRoundedRectangle(bounds, 3.0f);
+        
+        // Draw border
+        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
+        
+        // Draw maximize or restore icon
+        g.setColour(juce::Colours::white);
+        float iconSize = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.6f;
+        float iconX = bounds.getCentreX() - iconSize / 2.0f;
+        float iconY = bounds.getCentreY() - iconSize / 2.0f;
+        
+        if (isFullscreen)
+        {
+            // Draw restore icon (two overlapping rectangles)
+            float offset = iconSize * 0.15f;
+            g.drawRect(iconX + offset, iconY + offset, iconSize * 0.4f, iconSize * 0.4f, 1.5f);
+            g.drawRect(iconX, iconY, iconSize * 0.4f, iconSize * 0.4f, 1.5f);
+        }
+        else
+        {
+            // Draw maximize icon (square with diagonal corner)
+            g.drawRect(iconX, iconY, iconSize * 0.7f, iconSize * 0.7f, 1.5f);
+            // Draw corner accent
+            float cornerSize = iconSize * 0.25f;
+            g.drawLine(iconX + iconSize * 0.7f - cornerSize, iconY,
+                      iconX + iconSize * 0.7f, iconY + cornerSize, 1.5f);
+            g.drawLine(iconX + iconSize * 0.7f - cornerSize, iconY + iconSize * 0.7f,
+                      iconX + iconSize * 0.7f, iconY + iconSize * 0.7f - cornerSize, 1.5f);
+        }
+    }
+    
+private:
+    bool isFullscreen;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FullscreenButton)
+};
+
+//==============================================================================
+/**
 */
 class NotePadAudioProcessorEditor  : public juce::AudioProcessorEditor, 
                                     public juce::TextEditor::Listener,
@@ -390,6 +455,7 @@ class NotePadAudioProcessorEditor  : public juce::AudioProcessorEditor,
 {
 public:
     enum class Priority { Low, Medium, High };
+    enum class FullscreenMode { None, Left, Right };
     
     struct TodoItem
     {
@@ -435,6 +501,8 @@ public:
     std::unique_ptr<juce::ComboBox> priorityCombo;
     std::unique_ptr<juce::TextEditor> searchField;
     std::unique_ptr<StrikethroughButton> strikethroughButton;
+    std::unique_ptr<FullscreenButton> leftFullscreenButton;
+    std::unique_ptr<FullscreenButton> rightFullscreenButton;
     juce::OwnedArray<juce::ToggleButton> todoItems;
     juce::OwnedArray<juce::Label> todoLabels;
     juce::OwnedArray<juce::TextEditor> todoEditors;
@@ -444,6 +512,7 @@ public:
     int selectedIndex = -1;
     int dragStartIndex = -1;
     bool isDragging = false;
+    FullscreenMode fullscreenMode = FullscreenMode::None;
     
 
 private:
@@ -454,6 +523,7 @@ private:
     juce::Colour getPriorityColour(Priority p) const;
     void updateStrikethroughButtonState();
     void timerCallback() override;
+    void toggleFullscreen(FullscreenMode mode);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NotePadAudioProcessorEditor)
 };
