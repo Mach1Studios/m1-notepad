@@ -31,7 +31,15 @@ jobs:
         path: JUCE
         fetch-depth: 1
 
-    - name: Set variables
+    - name: Set variables (macos)
+      if: runner.os == 'MacOS'
+      run: |
+        VER=$(cat VERSION)
+        echo "VERSION=$VER" >> $GITHUB_ENV
+
+    - name: Set variables (windows)
+      if: runner.os == 'Windows'
+      shell: bash
       run: |
         VER=$(cat VERSION)
         echo "VERSION=$VER" >> $GITHUB_ENV
