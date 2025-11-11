@@ -31,9 +31,6 @@ treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce
     
     // Initialize todo mode property
     treeState.state.setProperty("TodoMode", false, nullptr);
-
-    // Add pass through mode property
-    treeState.state.setProperty("PassThrough", true, nullptr);
 }
 
 NotePadAudioProcessor::~NotePadAudioProcessor()

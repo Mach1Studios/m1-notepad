@@ -61,9 +61,8 @@ public:
     bool isTodoMode() const { return treeState.state.getProperty("TodoMode", false); }
     void setTodoMode(bool todoMode) { treeState.state.setProperty("TodoMode", todoMode, nullptr); }
 
-     // Pass through mode getter setter
-     bool isAudioPassThrough() const { return treeState.state.getProperty("PassThrough", true); }
-     void setAudioPassThrough(bool passThrough) { treeState.state.setProperty("PassThrough", passThrough, nullptr); }
+     // Pass through mode - always enabled
+     bool isAudioPassThrough() const { return true; }
 
 private:
     //==============================================================================    
