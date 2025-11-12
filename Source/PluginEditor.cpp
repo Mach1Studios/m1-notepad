@@ -24,7 +24,10 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     m1TextEditor->setPopupMenuEnabled(true);
     m1TextEditor->setTabKeyUsedAsCharacter(true);
     m1TextEditor->setTextToShowWhenEmpty("Keep session notes here...", juce::Colours::white);
-    m1TextEditor->setText(audioProcessor.treeState.state.getProperty("SessionText")); // Grabs the string within property labeled "SessionText"
+    // Load saved text from state - convert to string safely
+    juce::var sessionTextVar = audioProcessor.treeState.state.getProperty("SessionText");
+    juce::String sessionText = sessionTextVar.isString() ? sessionTextVar.toString() : juce::String();
+    m1TextEditor->setText(sessionText);
     
     // Fullscreen buttons setup
     leftFullscreenButton.reset(new FullscreenButton("LeftFullscreen"));
@@ -75,6 +78,12 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
 
 NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
 {
+    // Save final state before destroying the editor
+    saveEditorStateToProcessor();
+    
+    // Clear editor pointer in processor
+    audioProcessor.setEditor(nullptr);
+    
     m1TextEditor = nullptr;
     todoCheckbox = nullptr;
     todoInputField = nullptr;
@@ -180,7 +189,7 @@ void NotePadAudioProcessorEditor::resized()
         int todoPaneWidth = getWidth();
         int todoY = 10;
         int inputFieldHeight = 24;
-        int inputFieldY = getHeight() - inputFieldHeight - 10 - 39 / 4 - 10;
+        int inputFieldY = getHeight() - inputFieldHeight - 10 - 39 / 4 - 10; // - 39 / 4 is the height of the m1logo, - 10 is the margin
         
         // Hide notepad components
         m1TextEditor->setVisible(false);
@@ -568,34 +577,101 @@ void NotePadAudioProcessorEditor::refreshTodoList()
     
     // Load from state
     auto todoArray = audioProcessor.treeState.state.getChildWithName("TodoItems");
-    if (todoArray.isValid())
+    if (todoArray.isValid() && todoArray.getNumChildren() > 0)
     {
         for (int i = 0; i < todoArray.getNumChildren(); ++i)
         {
             auto todoItem = todoArray.getChild(i);
-            juce::String text = todoItem.getProperty("Text").toString();
-            bool checked = static_cast<bool>(todoItem.getProperty("Checked"));
-            TodoItem newItem;
-            newItem.text = text;
-            newItem.completed = checked;
-            addTodoItem(newItem);
+            if (todoItem.isValid())
+            {
+                // Get text property - handle both string and var types
+                juce::var textVar = todoItem.getProperty("Text");
+                juce::String text = textVar.isString() ? textVar.toString() : juce::String();
+                
+                // Get checked property - handle boolean conversion properly
+                juce::var checkedVar = todoItem.getProperty("Checked");
+                bool checked = false;
+                if (checkedVar.isBool())
+                    checked = static_cast<bool>(checkedVar);
+                else if (checkedVar.isInt())
+                    checked = static_cast<bool>(static_cast<int>(checkedVar));
+                else if (checkedVar.isDouble())
+                    checked = static_cast<bool>(static_cast<int>(static_cast<double>(checkedVar)));
+                else if (checkedVar.isString())
+                {
+                    // Handle string "true"/"false"
+                    juce::String str = checkedVar.toString().toLowerCase();
+                    checked = (str == "true" || str == "1");
+                }
+                
+                // Only add if text is not empty
+                if (text.isNotEmpty())
+                {
+                    TodoItem newItem;
+                    newItem.text = text;
+                    newItem.completed = checked;
+                    addTodoItem(newItem);
+                }
+            }
         }
     }
+    
+    // Ensure visual state is updated after loading all items
+    updateVisualState();
 }
 
 void NotePadAudioProcessorEditor::updateTodoItemsState()
 {
-    // Create or get the todo items array
-    juce::ValueTree todoArray = audioProcessor.treeState.state.getOrCreateChildWithName("TodoItems", nullptr);
-    todoArray.removeAllChildren(nullptr);
+    // Get the actual number of todo items from UI - they should be the same size
+    int numItems = todoItems.size();
+    if (todoLabels.size() != numItems)
+        numItems = juce::jmax(todoItems.size(), todoLabels.size());
     
-    // Store each todo item
-    for (int i = 0; i < todoItems.size(); ++i)
+    // Create a new TodoItems ValueTree with all children
+    juce::ValueTree newTodoArray("TodoItems");
+    
+    // Add each todo item to the new array
+    for (int i = 0; i < numItems; ++i)
     {
-        juce::ValueTree todoItem("TodoItem" + juce::String(i));
-        todoItem.setProperty("Text", todoLabels[i]->getText(), nullptr);
-        todoItem.setProperty("Checked", todoItems[i]->getToggleState(), nullptr);
-        todoArray.appendChild(todoItem, nullptr);
+        // Make sure we have valid UI elements for this index
+        if (i < todoLabels.size() && i < todoItems.size())
+        {
+            juce::String text = todoLabels[i]->getText().trim();
+            bool checked = todoItems[i]->getToggleState();
+            
+            // Create ValueTree node for this todo item
+            juce::ValueTree todoItem("TodoItem");
+            todoItem.setProperty("Text", text, nullptr);
+            // Explicitly save as boolean to ensure proper type
+            todoItem.setProperty("Checked", juce::var(checked), nullptr);
+            
+            // Append to the new array
+            newTodoArray.appendChild(todoItem, nullptr);
+        }
+    }
+    
+    // Now replace the old TodoItems child with the new one
+    // First, remove the old one if it exists
+    auto oldTodoArray = audioProcessor.treeState.state.getChildWithName("TodoItems");
+    if (oldTodoArray.isValid())
+    {
+        audioProcessor.treeState.state.removeChild(oldTodoArray, nullptr);
+    }
+    
+    // Add the new one
+    audioProcessor.treeState.state.appendChild(newTodoArray, nullptr);
+    
+    // Also sync todoData for consistency (used by other parts of the code)
+    todoData.clear();
+    for (int i = 0; i < numItems; ++i)
+    {
+        if (i < todoLabels.size() && i < todoItems.size())
+        {
+            TodoItem item;
+            item.text = todoLabels[i]->getText();
+            item.completed = todoItems[i]->getToggleState();
+            todoData.add(item);
+        }
     }
 }
 
@@ -765,6 +841,19 @@ juce::Colour NotePadAudioProcessorEditor::getPriorityColour(Priority p) const
     }
 }
 
+
+void NotePadAudioProcessorEditor::saveEditorStateToProcessor()
+{
+    // Save the text editor content to processor state
+    if (m1TextEditor != nullptr)
+    {
+        juce::String currentText = m1TextEditor->getText();
+        audioProcessor.treeState.state.setProperty("SessionText", currentText, nullptr);
+    }
+    
+    // Save all todo items to processor state
+    updateTodoItemsState();
+}
 
 void NotePadAudioProcessorEditor::toggleFullscreen(FullscreenMode mode)
 {

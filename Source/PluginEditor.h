@@ -195,6 +195,9 @@ public:
     void exportTodoList();
     void importTodoList();
     
+    // Public so processor can call it before saving state
+    void saveEditorStateToProcessor();
+    
     std::unique_ptr<juce::TextEditor> m1TextEditor;
     std::unique_ptr<juce::ToggleButton> todoCheckbox;
     std::unique_ptr<juce::TextEditor> todoInputField;
@@ -222,5 +225,6 @@ private:
     juce::Colour getPriorityColour(Priority p) const;
     void toggleFullscreen(FullscreenMode mode);
 
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NotePadAudioProcessorEditor)
 };

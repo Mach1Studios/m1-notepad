@@ -11,6 +11,10 @@
 #include <JuceHeader.h>
 
 //==============================================================================
+// Forward declaration
+class NotePadAudioProcessorEditor;
+
+//==============================================================================
 /**
 */
 
@@ -63,6 +67,11 @@ public:
 
      // Pass through mode - always enabled
      bool isAudioPassThrough() const { return true; }
+     
+     // Store pointer to editor to save state before getStateInformation is called
+     NotePadAudioProcessorEditor* currentEditor = nullptr;
+     
+     void setEditor(NotePadAudioProcessorEditor* editor) { currentEditor = editor; }
 
 private:
     //==============================================================================    
