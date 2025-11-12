@@ -180,7 +180,7 @@ void NotePadAudioProcessorEditor::resized()
         int todoPaneWidth = getWidth();
         int todoY = 10;
         int inputFieldHeight = 24;
-        int inputFieldY = getHeight() - inputFieldHeight - 10;
+        int inputFieldY = getHeight() - inputFieldHeight - 10 - 39 / 4 - 10;
         
         // Hide notepad components
         m1TextEditor->setVisible(false);
