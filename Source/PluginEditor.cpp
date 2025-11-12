@@ -419,7 +419,15 @@ void NotePadAudioProcessorEditor::textEditorReturnKeyPressed(juce::TextEditor& e
             todoLabels[editingIndex]->setText(text, juce::dontSendNotification);
             todoEditors[editingIndex]->setVisible(false);
             todoLabels[editingIndex]->setVisible(true);
+            
+            // Update todoData to keep it in sync
+            if (editingIndex < todoData.size())
+            {
+                todoData.getReference(editingIndex).text = text;
+            }
+            
             updateTodoItemsState();
+            updateVisualState(); // Update visual state to refresh strikethrough
         }
         editingIndex = -1;
     }
@@ -452,31 +460,12 @@ void NotePadAudioProcessorEditor::editTodoItem(int index)
 
 void NotePadAudioProcessorEditor::addTodoItem(const juce::String& text, bool checked)
 {
-    int index = todoItems.size();
-    
-    // Create checkbox
-    auto* checkbox = new juce::ToggleButton("");
-    todoItems.add(checkbox);
-    addAndMakeVisible(checkbox);
-    checkbox->addListener(this);
-    checkbox->setToggleState(checked, juce::dontSendNotification);
-    checkbox->setVisible(true); // Always visible in todo area
-    
-    // Create label
-    auto* label = new juce::Label("", text);
-    todoLabels.add(label);
-    addAndMakeVisible(label);
-    label->setColour(juce::Label::textColourId, juce::Colours::white);
-    label->setVisible(true); // Always visible in todo area
-    label->addMouseListener(this, false);
-    
-    // Set initial bounds
-    checkbox->setBounds(10, 10 + index * 30, 22, 20);
-    label->setBounds(40, 10 + index * 30, getWidth() - 50, 20);
-    
-    // Update selection
-    selectedIndex = index;
-    updateVisualState();
+    // Create TodoItem and use the other addTodoItem function
+    TodoItem item;
+    item.text = text;
+    item.completed = checked;
+    item.priority = Priority::Low;
+    addTodoItem(item);
 }
 
 void NotePadAudioProcessorEditor::deleteTodoItem(int index)
@@ -487,11 +476,18 @@ void NotePadAudioProcessorEditor::deleteTodoItem(int index)
         todoLabels.remove(index);
         todoEditors.remove(index);
         
+        if (index < todoData.size())
+            todoData.remove(index);
+        
         if (editingIndex == index)
             editingIndex = -1;
+        else if (editingIndex > index)
+            editingIndex--;
             
         if (selectedIndex >= todoItems.size())
             selectedIndex = todoItems.size() - 1;
+        else if (selectedIndex > index)
+            selectedIndex--;
             
         updateTodoItemsState();
         updateVisualState();
@@ -516,6 +512,9 @@ void NotePadAudioProcessorEditor::updateVisualState()
 {
     for (int i = 0; i < todoLabels.size(); ++i)
     {
+        if (i >= todoData.size())
+            continue;
+            
         const auto& item = todoData[i];
         bool isSelected = (i == selectedIndex);
         
@@ -525,9 +524,11 @@ void NotePadAudioProcessorEditor::updateVisualState()
             isSelected ? juce::Colours::lightblue :
             getPriorityColour(item.priority));
             
-        // Add strikethrough for completed items
-        todoLabels[i]->setFont(juce::Font(16.0f,
-            item.completed ? juce::Font::bold : juce::Font::plain));
+        // Set strikethrough for completed items
+        todoLabels[i]->setStrikethrough(item.completed);
+        
+        // Set font (plain for all, strikethrough visual is handled separately)
+        todoLabels[i]->setFont(juce::Font(16.0f, juce::Font::plain));
     }
 }
 
@@ -620,6 +621,11 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
             if (button == todoItems[i])
             {
                 selectedIndex = i;
+                // Update the todoData completed state to match the checkbox
+                if (i < todoData.size())
+                {
+                    todoData.getReference(i).completed = todoItems[i]->getToggleState();
+                }
                 updateVisualState();
                 updateTodoItemsState();
                 break;
@@ -634,6 +640,7 @@ void NotePadAudioProcessorEditor::refreshTodoList()
     todoItems.clear();
     todoLabels.clear();
     todoEditors.clear();
+    todoData.clear();
     
     // Load from state
     auto todoArray = audioProcessor.treeState.state.getChildWithName("TodoItems");
@@ -735,12 +742,13 @@ void NotePadAudioProcessorEditor::addTodoItem(const TodoItem& item)
     checkbox->setVisible(true); // Always visible in todo area
     
     // Create label with priority and category indicators
-    auto* label = new juce::Label("", item.text);
+    auto* label = new StrikethroughLabel("", item.text);
     todoLabels.add(label);
     addAndMakeVisible(label);
     label->setColour(juce::Label::textColourId, getPriorityColour(item.priority));
     label->setVisible(true); // Always visible in todo area
     label->addMouseListener(this, false);
+    label->setStrikethrough(item.completed);
     
     // Set initial bounds
     checkbox->setBounds(10, 10 + index * 30, 22, 20);

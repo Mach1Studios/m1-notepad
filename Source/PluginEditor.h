@@ -13,6 +13,75 @@
 
 //==============================================================================
 /**
+ * Custom Label that supports strikethrough text
+ */
+class StrikethroughLabel : public juce::Label
+{
+public:
+    StrikethroughLabel(const juce::String& name = juce::String(), 
+                      const juce::String& text = juce::String()) 
+        : juce::Label(name, text), hasStrikethrough(false) {}
+    
+    void setStrikethrough(bool strike)
+    {
+        if (hasStrikethrough != strike)
+        {
+            hasStrikethrough = strike;
+            repaint();
+        }
+    }
+    
+    bool getStrikethrough() const { return hasStrikethrough; }
+    
+    void paintOverChildren(juce::Graphics& g) override
+    {
+        // Draw strikethrough line on top of the text
+        if (hasStrikethrough)
+        {
+            auto bounds = getLocalBounds();
+            auto labelFont = getFont();
+            auto labelText = getText();
+            
+            if (labelText.isNotEmpty())
+            {
+                // Get the text area (accounting for border)
+                auto labelBorder = getBorderSize();
+                auto textArea = labelBorder.subtractedFrom(bounds).toFloat();
+                
+                // For left-aligned text (default for labels), calculate text position
+                float textWidth = static_cast<float>(labelFont.getStringWidth(labelText));
+                float textX = static_cast<float>(textArea.getX());
+                float textY = static_cast<float>(textArea.getY());
+                
+                // Get justification to determine text position
+                auto labelJustification = getJustificationType();
+                if (labelJustification.testFlags(juce::Justification::right))
+                {
+                    textX = textArea.getRight() - textWidth;
+                }
+                else if (labelJustification.testFlags(juce::Justification::horizontallyCentred))
+                {
+                    textX = textArea.getCentreX() - textWidth / 2.0f;
+                }
+                
+                // Calculate strikethrough Y position - centre of the text line
+                // Font metrics: ascent is above baseline, descent is below
+                float lineY = textY + labelFont.getHeight() / 2.0f;
+                
+                // Draw strikethrough line across the text width
+                g.setColour(findColour(textColourId));
+                g.drawLine(textX, lineY, textX + textWidth, lineY, 2.0f);
+            }
+        }
+    }
+    
+private:
+    bool hasStrikethrough;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StrikethroughLabel)
+};
+
+//==============================================================================
+/**
  * Custom button that displays a strikethrough icon
  */
 class StrikethroughButton : public juce::Button
@@ -52,14 +121,14 @@ public:
         g.setColour(juce::Colours::white);
         g.setFont(juce::Font(14.0f, juce::Font::plain));
         
-        juce::String text = "abc";
+        juce::String iconText = "abc";
         auto textBounds = bounds.reduced(4.0f);
-        auto textWidth = g.getCurrentFont().getStringWidth(text);
+        auto textWidth = g.getCurrentFont().getStringWidth(iconText);
         auto textX = (bounds.getWidth() - textWidth) / 2.0f;
         auto textY = bounds.getCentreY();
         
         // Draw the text
-        g.drawText(text, textBounds, juce::Justification::centred);
+        g.drawText(iconText, textBounds, juce::Justification::centred);
         
         // Draw the strikethrough line - always visible to show what the button does
         float lineY = textY;
@@ -504,7 +573,7 @@ public:
     std::unique_ptr<FullscreenButton> leftFullscreenButton;
     std::unique_ptr<FullscreenButton> rightFullscreenButton;
     juce::OwnedArray<juce::ToggleButton> todoItems;
-    juce::OwnedArray<juce::Label> todoLabels;
+    juce::OwnedArray<StrikethroughLabel> todoLabels;
     juce::OwnedArray<juce::TextEditor> todoEditors;
     juce::Array<TodoItem> todoData;
     
