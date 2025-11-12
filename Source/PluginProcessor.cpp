@@ -23,14 +23,17 @@ NotePadAudioProcessor::NotePadAudioProcessor()
 treeState (*this, nullptr /* undomanager */, "TreeState", {std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("gain", 1), "Gain", -48.0f, 0.0f, -15.0f) })
 #endif
 {
-    // Create a treestate child property to store the text as a giant string
-    treeState.state.getOrCreateChildWithName("SessionText", nullptr);
+    // Initialize default properties only if they don't exist
+    // (They will be loaded from saved state if available via setStateInformation)
+    if (!treeState.state.hasProperty("SessionText"))
+        treeState.state.setProperty("SessionText", "", nullptr);
     
-    // Create a treestate child property to store todo items
+    // Create a treestate child node to store todo items (if it doesn't exist)
     treeState.state.getOrCreateChildWithName("TodoItems", nullptr);
     
-    // Initialize todo mode property
-    treeState.state.setProperty("TodoMode", false, nullptr);
+    // Initialize todo mode property (only if it doesn't exist)
+    if (!treeState.state.hasProperty("TodoMode"))
+        treeState.state.setProperty("TodoMode", false, nullptr);
 }
 
 NotePadAudioProcessor::~NotePadAudioProcessor()
@@ -141,16 +144,24 @@ void NotePadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    bool audioPassThrough = isAudioPassThrough();
+
+    if (!audioPassThrough)
+    {
+        // Mute: clear all output channels
+        buffer.clear();
+    }
+    // If audioPassThrough is true, the audio already passes through (input is already in output channels)
     
-    //TODO: bypass processing
+    // In case we have more outputs than inputs, clear any output
+    // channels that didn't contain input data (only needed when pass-through is enabled)
+    if (audioPassThrough)
+    {
+        for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        {
+            buffer.clear (i, 0, buffer.getNumSamples());
+        }
+    }
 }
 
 //==============================================================================
@@ -161,7 +172,8 @@ bool NotePadAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* NotePadAudioProcessor::createEditor()
 {
-    NotePadAudioProcessorEditor* editor =  new NotePadAudioProcessorEditor (*this);
+    NotePadAudioProcessorEditor* editor = new NotePadAudioProcessorEditor (*this);
+    currentEditor = editor;
     return editor;
 }
 
@@ -172,7 +184,14 @@ void NotePadAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
     
-    // Instead of just saving SessionText, save the entire tree state to include todo items
+    // If editor exists, save its current state before saving
+    // This ensures we capture the latest changes even if the editor hasn't been destroyed yet
+    if (currentEditor != nullptr)
+    {
+        currentEditor->saveEditorStateToProcessor();
+    }
+    
+    // Save the entire tree state to include todo items and session text
     auto state = treeState.copyState();
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
@@ -188,15 +207,19 @@ void NotePadAudioProcessor::setStateInformation (const void* data, int sizeInByt
     
     if (xmlState.get() != nullptr)
     {
-        if (xmlState->hasTagName(treeState.state.getType()))
+        // Try to restore the state from XML - don't check tag name as it might vary
+        juce::ValueTree newState = juce::ValueTree::fromXml(*xmlState);
+        if (newState.isValid())
         {
-            treeState.replaceState(juce::ValueTree::fromXml(*xmlState));
+            treeState.replaceState(newState);
+            
+            // Ensure required properties and child nodes exist after loading
+            if (!treeState.state.hasProperty("SessionText"))
+                treeState.state.setProperty("SessionText", "", nullptr);
+            treeState.state.getOrCreateChildWithName("TodoItems", nullptr);
+            if (!treeState.state.hasProperty("TodoMode"))
+                treeState.state.setProperty("TodoMode", false, nullptr);
         }
-    }
-    else
-    {
-        // Fallback for backward compatibility - load just the session text
-        treeState.state.setProperty("SessionText", juce::MemoryInputStream(data, static_cast<size_t>(sizeInBytes), false).readString(), nullptr);
     }
 }
 

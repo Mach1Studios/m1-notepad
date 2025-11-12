@@ -11,6 +11,10 @@
 #include <JuceHeader.h>
 
 //==============================================================================
+// Forward declaration
+class NotePadAudioProcessorEditor;
+
+//==============================================================================
 /**
 */
 
@@ -60,6 +64,14 @@ public:
     // Todo functionality helpers
     bool isTodoMode() const { return treeState.state.getProperty("TodoMode", false); }
     void setTodoMode(bool todoMode) { treeState.state.setProperty("TodoMode", todoMode, nullptr); }
+
+     // Pass through mode - always enabled
+     bool isAudioPassThrough() const { return true; }
+     
+     // Store pointer to editor to save state before getStateInformation is called
+     NotePadAudioProcessorEditor* currentEditor = nullptr;
+     
+     void setEditor(NotePadAudioProcessorEditor* editor) { currentEditor = editor; }
 
 private:
     //==============================================================================    

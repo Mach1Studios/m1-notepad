@@ -24,18 +24,34 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     m1TextEditor->setPopupMenuEnabled(true);
     m1TextEditor->setTabKeyUsedAsCharacter(true);
     m1TextEditor->setTextToShowWhenEmpty("Keep session notes here...", juce::Colours::white);
-    m1TextEditor->setText(audioProcessor.treeState.state.getProperty("SessionText")); // Grabs the string within property labeled "SessionText"
-    m1TextEditor->setBounds(0, 0, 800, 512 - 20);
+    // Load saved text from state - convert to string safely
+    juce::var sessionTextVar = audioProcessor.treeState.state.getProperty("SessionText");
+    juce::String sessionText = sessionTextVar.isString() ? sessionTextVar.toString() : juce::String();
+    m1TextEditor->setText(sessionText);
+    
+    // Fullscreen buttons setup
+    leftFullscreenButton.reset(new FullscreenButton("LeftFullscreen"));
+    addAndMakeVisible(leftFullscreenButton.get());
+    leftFullscreenButton->addListener(this);
+    leftFullscreenButton->setTooltip("Fullscreen notepad");
+    
+    rightFullscreenButton.reset(new FullscreenButton("RightFullscreen"));
+    addAndMakeVisible(rightFullscreenButton.get());
+    rightFullscreenButton->addListener(this);
+    rightFullscreenButton->setTooltip("Fullscreen todo list");
+    
     m1TextEditor->setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromFloatRGBA(40.0f, 40.0f, 40.0f, 0.10f));
     m1TextEditor->setColour(juce::TextEditor::textColourId, juce::Colour::fromFloatRGBA(251.0f, 251.0f, 251.0f, 1.0f));
     m1TextEditor->setColour(juce::TextEditor::highlightColourId, juce::Colour::fromFloatRGBA(242.0f, 255.0f, 95.0f, 0.25f));
+    m1TextEditor->setVisible(true); // Always visible in notepad area
     
-    // Todo checkbox setup
+    // Todo checkbox setup - remove or hide it since we always show both views
     todoCheckbox.reset(new juce::ToggleButton("Todo Mode"));
     addAndMakeVisible(todoCheckbox.get());
     todoCheckbox->addListener(this);
     todoCheckbox->setToggleState(audioProcessor.isTodoMode(), juce::dontSendNotification);
     todoCheckbox->setColour(juce::ToggleButton::textColourId, juce::Colours::white);
+    todoCheckbox->setVisible(false); // Hide the checkbox since both views are always visible
     
     // Todo input field setup
     todoInputField.reset(new juce::TextEditor("todo input"));
@@ -48,7 +64,7 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     todoInputField->setCaretVisible(true);
     todoInputField->setPopupMenuEnabled(true);
     todoInputField->setTextToShowWhenEmpty("Type a new todo and press Enter...", juce::Colours::white);
-    todoInputField->setVisible(audioProcessor.isTodoMode());
+    todoInputField->setVisible(true); // Always visible in todo area
     todoInputField->setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromFloatRGBA(40.0f, 40.0f, 40.0f, 0.10f));
     todoInputField->setColour(juce::TextEditor::textColourId, juce::Colour::fromFloatRGBA(251.0f, 251.0f, 251.0f, 1.0f));
     
@@ -57,14 +73,22 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     m1logo = juce::ImageCache::getFromMemory(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
     
     setResizable(true, true);
-    setSize(800, 512); // keep this here to not crash on scan
+    setSize(1200, 512); // Wider default size to accommodate split view
 }
 
 NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
 {
+    // Save final state before destroying the editor
+    saveEditorStateToProcessor();
+    
+    // Clear editor pointer in processor
+    audioProcessor.setEditor(nullptr);
+    
     m1TextEditor = nullptr;
     todoCheckbox = nullptr;
     todoInputField = nullptr;
+    leftFullscreenButton = nullptr;
+    rightFullscreenButton = nullptr;
     todoItems.clear();
     todoLabels.clear();
     todoEditors.clear();
@@ -82,47 +106,228 @@ void NotePadAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawImageWithin(m1logo, -15, getHeight() - 17, 161 / 2, 39 / 4, juce::RectanglePlacement());
 }
 
+void NotePadAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
+{
+    // Only draw divider if not in fullscreen mode
+    if (fullscreenMode == FullscreenMode::None)
+    {
+        // Draw strong thick divider line between notepad and todo panes - extends all the way to the top
+        // This is drawn over children to ensure it's always visible, even in the header area
+        int dividerWidth = 4; // Thick divider width for strong visibility (must match resized())
+        int dividerX = getWidth() / 2;
+        
+        // Draw a thick solid divider bar from the very top (y=0) to the bottom
+        // Center the divider at the midpoint
+        int dividerStartX = dividerX - dividerWidth / 2;
+        int componentHeight = getHeight();
+        
+        // Draw the main divider with a solid, highly visible color
+        // Use a bright gray/white that stands out clearly against the dark background
+        juce::Rectangle<int> dividerRect(dividerStartX, 0, dividerWidth, componentHeight);
+        g.setColour(juce::Colour::fromFloatRGBA(0.7f, 0.7f, 0.7f, 1.0f)); // Bright gray, fully opaque for strong visibility
+        g.fillRect(dividerRect);
+        
+        // Add a bright white highlight on the left edge for extra visibility and definition
+        g.setColour(juce::Colours::white.withAlpha(0.8f));
+        g.drawLine(static_cast<float>(dividerStartX), 0.0f, 
+                   static_cast<float>(dividerStartX), static_cast<float>(componentHeight), 1.5f);
+    }
+}
+
 void NotePadAudioProcessorEditor::resized()
 {
     // Safety function to ensure we dont crash when making the window too small
     int w = getWidth();
     int h = getHeight();
-    if (w < 150) w = 150; // set the minimum width
+    if (w < 300) w = 300; // Increased minimum width to accommodate split view
     if (h < 100) h = 100; // set the minimum height
     if (w != getWidth() || h != getHeight()) {
         setSize(w, h);
     }
     
-    // Position the text editor for note mode
-    m1TextEditor->setBounds(0, 0, getWidth(), getHeight() - 60);
+    int fullscreenButtonSize = 24;
+    int fullscreenButtonMargin = 5;
     
-    // Position the todo mode controls
-    todoCheckbox->setBounds(0, getHeight() - 50, 100, 24);
-    
-    // Position the todo input field and items if in todo mode
-    if (audioProcessor.isTodoMode())
+    if (fullscreenMode == FullscreenMode::Left)
     {
-        int y = 10;
+        // Fullscreen left pane (notepad)
+        int notepadWidth = getWidth();
         
-        // Position todo items
+        // Position fullscreen button in top-right corner
+        if (leftFullscreenButton != nullptr)
+        {
+            leftFullscreenButton->setBounds(getWidth() - fullscreenButtonSize - fullscreenButtonMargin, 
+                                           fullscreenButtonMargin, 
+                                           fullscreenButtonSize, 
+                                           fullscreenButtonSize);
+            leftFullscreenButton->setFullscreen(true);
+            leftFullscreenButton->setVisible(true);
+            leftFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        if (rightFullscreenButton != nullptr)
+        {
+            rightFullscreenButton->setVisible(false);
+        }
+        
+        // Position text editor to fill entire width (no button space needed)
+        m1TextEditor->setBounds(0, 0, notepadWidth, getHeight());
+        
+        // Hide todo pane components
+        todoInputField->setVisible(false);
         for (int i = 0; i < todoItems.size(); ++i)
         {
-            todoItems[i]->setBounds(10, y, 22, 20);
+            todoItems[i]->setVisible(false);
+            todoLabels[i]->setVisible(false);
+            if (todoEditors[i] != nullptr)
+                todoEditors[i]->setVisible(false);
+        }
+    }
+    else if (fullscreenMode == FullscreenMode::Right)
+    {
+        // Fullscreen right pane (todo list)
+        int todoPaneX = 0;
+        int todoPaneWidth = getWidth();
+        int todoY = 10;
+        int inputFieldHeight = 24;
+        int inputFieldY = getHeight() - inputFieldHeight - 10 - 39 / 4 - 10; // - 39 / 4 is the height of the m1logo, - 10 is the margin
+        
+        // Hide notepad components
+        m1TextEditor->setVisible(false);
+        
+        // Position fullscreen button in top-right corner
+        int buttonX = getWidth() - fullscreenButtonSize - fullscreenButtonMargin;
+        if (rightFullscreenButton != nullptr)
+        {
+            rightFullscreenButton->setBounds(buttonX, 
+                                            fullscreenButtonMargin, 
+                                            fullscreenButtonSize, 
+                                            fullscreenButtonSize);
+            rightFullscreenButton->setFullscreen(true);
+            rightFullscreenButton->setVisible(true);
+            rightFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        if (leftFullscreenButton != nullptr)
+        {
+            leftFullscreenButton->setVisible(false);
+        }
+        
+        // Calculate button area to avoid overlap with todo items
+        // Leave space for the button plus some padding
+        int buttonAreaStart = buttonX - 10; // Button area starts 10px before the button
+        
+        // Position todo items (but avoid button area)
+        for (int i = 0; i < todoItems.size(); ++i)
+        {
+            int itemX = todoPaneX + 10;
+            // Make sure labels don't extend into button area
+            int maxItemWidth = buttonAreaStart - itemX - 30; // Leave space for checkbox (22px) and padding (8px)
+            // Ensure we don't go negative or too small
+            int itemWidth = juce::jmax(50, juce::jmin(todoPaneWidth - 20, maxItemWidth));
+            
+            todoItems[i]->setVisible(true);
+            todoItems[i]->setBounds(itemX, todoY, 22, 20);
             
             if (todoEditors[i] != nullptr && todoEditors[i]->isVisible())
             {
-                todoEditors[i]->setBounds(40, y, getWidth() - 50, 20);
+                todoEditors[i]->setVisible(true);
+                todoEditors[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
             }
             else
             {
-                todoLabels[i]->setBounds(40, y, getWidth() - 50, 20);
+                todoLabels[i]->setVisible(true);
+                todoLabels[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
             }
             
-            y += 30;
+            todoY += 30;
         }
         
         // Position input field at the bottom
-        todoInputField->setBounds(10, y, getWidth() - 22, 24);
+        int inputFieldX = todoPaneX + 10;
+        int inputFieldWidth = todoPaneWidth - 20;
+        todoInputField->setBounds(inputFieldX, inputFieldY, inputFieldWidth, inputFieldHeight);
+        todoInputField->setVisible(true);
+    }
+    else
+    {
+        // Split view mode (default)
+        // Calculate split point (vertical divider in the middle)
+        int dividerX = getWidth() / 2;
+        int dividerWidth = 4; // Width of the divider line (must match paintOverChildren)
+        
+        // Left pane: Notepad
+        int notepadWidth = dividerX;
+        
+        // Position left fullscreen button in top-right of left pane
+        if (leftFullscreenButton != nullptr)
+        {
+            leftFullscreenButton->setBounds(notepadWidth - fullscreenButtonSize - fullscreenButtonMargin, 
+                                           fullscreenButtonMargin, 
+                                           fullscreenButtonSize, 
+                                           fullscreenButtonSize);
+            leftFullscreenButton->setFullscreen(false);
+            leftFullscreenButton->setVisible(true);
+            leftFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        
+        // Position text editor in left pane (no button space needed)
+        m1TextEditor->setBounds(0, 0, notepadWidth, getHeight());
+        m1TextEditor->setVisible(true);
+        
+        // Right pane: Todo list
+        int todoPaneX = dividerX + dividerWidth;
+        int todoPaneWidth = getWidth() - todoPaneX;
+        int todoY = 10;
+        int inputFieldHeight = 24;
+        int inputFieldY = getHeight() - inputFieldHeight - 10;
+        
+        // Position right fullscreen button in top-right of right pane
+        int buttonX = getWidth() - fullscreenButtonSize - fullscreenButtonMargin;
+        if (rightFullscreenButton != nullptr)
+        {
+            rightFullscreenButton->setBounds(buttonX, 
+                                            fullscreenButtonMargin, 
+                                            fullscreenButtonSize, 
+                                            fullscreenButtonSize);
+            rightFullscreenButton->setFullscreen(false);
+            rightFullscreenButton->setVisible(true);
+            rightFullscreenButton->toFront(false); // Bring button to front so it receives clicks
+        }
+        
+        // Calculate button area to avoid overlap with todo items
+        // Leave space for the button plus some padding
+        int buttonAreaStart = buttonX - 10; // Button area starts 10px before the button
+        
+        // Position todo items in right pane (but avoid button area)
+        for (int i = 0; i < todoItems.size(); ++i)
+        {
+            int itemX = todoPaneX + 10;
+            // Make sure labels don't extend into button area
+            int maxItemWidth = buttonAreaStart - itemX - 30; // Leave space for checkbox (22px) and padding (8px)
+            // Ensure we don't go negative or too small
+            int itemWidth = juce::jmax(50, juce::jmin(todoPaneWidth - 20, maxItemWidth));
+            
+            todoItems[i]->setVisible(true);
+            todoItems[i]->setBounds(itemX, todoY, 22, 20);
+            
+            if (todoEditors[i] != nullptr && todoEditors[i]->isVisible())
+            {
+                todoEditors[i]->setVisible(true);
+                todoEditors[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
+            }
+            else
+            {
+                todoLabels[i]->setVisible(true);
+                todoLabels[i]->setBounds(itemX + 30, todoY, itemWidth - 30, 20);
+            }
+            
+            todoY += 30;
+        }
+        
+        // Position input field at the bottom of todo pane
+        int inputFieldX = todoPaneX + 10;
+        int inputFieldWidth = todoPaneWidth - 20;
+        todoInputField->setBounds(inputFieldX, inputFieldY, inputFieldWidth, inputFieldHeight);
+        todoInputField->setVisible(true);
     }
 }
 
@@ -157,7 +362,15 @@ void NotePadAudioProcessorEditor::textEditorReturnKeyPressed(juce::TextEditor& e
             todoLabels[editingIndex]->setText(text, juce::dontSendNotification);
             todoEditors[editingIndex]->setVisible(false);
             todoLabels[editingIndex]->setVisible(true);
+            
+            // Update todoData to keep it in sync
+            if (editingIndex < todoData.size())
+            {
+                todoData.getReference(editingIndex).text = text;
+            }
+            
             updateTodoItemsState();
+            updateVisualState(); // Update visual state to refresh strikethrough
         }
         editingIndex = -1;
     }
@@ -190,31 +403,12 @@ void NotePadAudioProcessorEditor::editTodoItem(int index)
 
 void NotePadAudioProcessorEditor::addTodoItem(const juce::String& text, bool checked)
 {
-    int index = todoItems.size();
-    
-    // Create checkbox
-    auto* checkbox = new juce::ToggleButton("");
-    todoItems.add(checkbox);
-    addAndMakeVisible(checkbox);
-    checkbox->addListener(this);
-    checkbox->setToggleState(checked, juce::dontSendNotification);
-    checkbox->setVisible(audioProcessor.isTodoMode());
-    
-    // Create label
-    auto* label = new juce::Label("", text);
-    todoLabels.add(label);
-    addAndMakeVisible(label);
-    label->setColour(juce::Label::textColourId, juce::Colours::white);
-    label->setVisible(audioProcessor.isTodoMode());
-    label->addMouseListener(this, false);
-    
-    // Set initial bounds
-    checkbox->setBounds(10, 10 + index * 30, 22, 20);
-    label->setBounds(40, 10 + index * 30, getWidth() - 50, 20);
-    
-    // Update selection
-    selectedIndex = index;
-    updateVisualState();
+    // Create TodoItem and use the other addTodoItem function
+    TodoItem item;
+    item.text = text;
+    item.completed = checked;
+    item.priority = Priority::Low;
+    addTodoItem(item);
 }
 
 void NotePadAudioProcessorEditor::deleteTodoItem(int index)
@@ -225,11 +419,18 @@ void NotePadAudioProcessorEditor::deleteTodoItem(int index)
         todoLabels.remove(index);
         todoEditors.remove(index);
         
+        if (index < todoData.size())
+            todoData.remove(index);
+        
         if (editingIndex == index)
             editingIndex = -1;
+        else if (editingIndex > index)
+            editingIndex--;
             
         if (selectedIndex >= todoItems.size())
             selectedIndex = todoItems.size() - 1;
+        else if (selectedIndex > index)
+            selectedIndex--;
             
         updateTodoItemsState();
         updateVisualState();
@@ -254,6 +455,9 @@ void NotePadAudioProcessorEditor::updateVisualState()
 {
     for (int i = 0; i < todoLabels.size(); ++i)
     {
+        if (i >= todoData.size())
+            continue;
+            
         const auto& item = todoData[i];
         bool isSelected = (i == selectedIndex);
         
@@ -263,15 +467,29 @@ void NotePadAudioProcessorEditor::updateVisualState()
             isSelected ? juce::Colours::lightblue :
             getPriorityColour(item.priority));
             
-        // Add strikethrough for completed items
-        todoLabels[i]->setFont(juce::Font(16.0f,
-            item.completed ? juce::Font::bold : juce::Font::plain));
+        // Set strikethrough for completed items
+        todoLabels[i]->setStrikethrough(item.completed);
+        
+        // Set font (plain for all, strikethrough visual is handled separately)
+        todoLabels[i]->setFont(juce::Font(16.0f, juce::Font::plain));
     }
 }
 
 bool NotePadAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
 {
-    if (audioProcessor.isTodoMode())
+    // Todo keyboard shortcuts work when focus is in todo area
+    // Check if focus is on todo input field or a todo item
+    bool isTodoFocused = todoInputField->hasKeyboardFocus(true);
+    for (int i = 0; i < todoEditors.size(); ++i)
+    {
+        if (todoEditors[i] != nullptr && todoEditors[i]->hasKeyboardFocus(true))
+        {
+            isTodoFocused = true;
+            break;
+        }
+    }
+    
+    if (isTodoFocused || selectedIndex >= 0)
     {
         if (key == juce::KeyPress::upKey)
         {
@@ -306,21 +524,27 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
 {
     if (button == todoCheckbox.get())
     {
-        // Toggle between note mode and todo mode
+        // Checkbox is now hidden, but keep the logic for state management
         bool todoMode = todoCheckbox->getToggleState();
         audioProcessor.setTodoMode(todoMode);
-        
-        // Toggle visibility of UI elements based on mode
-        m1TextEditor->setVisible(!todoMode);
-        todoInputField->setVisible(todoMode);
-        
-        // Show/hide todo items based on mode
-        for (auto& checkbox : todoItems)
-            checkbox->setVisible(todoMode);
-        for (auto& label : todoLabels)
-            label->setVisible(todoMode);
-            
+        // Both views are always visible now, so no need to toggle visibility
         resized(); // Update layout
+    }
+    else if (button == leftFullscreenButton.get())
+    {
+        // Toggle left pane fullscreen
+        if (fullscreenMode == FullscreenMode::Left)
+            toggleFullscreen(FullscreenMode::None); // Restore to split view
+        else
+            toggleFullscreen(FullscreenMode::Left); // Fullscreen left pane
+    }
+    else if (button == rightFullscreenButton.get())
+    {
+        // Toggle right pane fullscreen
+        if (fullscreenMode == FullscreenMode::Right)
+            toggleFullscreen(FullscreenMode::None); // Restore to split view
+        else
+            toggleFullscreen(FullscreenMode::Right); // Fullscreen right pane
     }
     else
     {
@@ -330,6 +554,11 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
             if (button == todoItems[i])
             {
                 selectedIndex = i;
+                // Update the todoData completed state to match the checkbox
+                if (i < todoData.size())
+                {
+                    todoData.getReference(i).completed = todoItems[i]->getToggleState();
+                }
                 updateVisualState();
                 updateTodoItemsState();
                 break;
@@ -344,48 +573,156 @@ void NotePadAudioProcessorEditor::refreshTodoList()
     todoItems.clear();
     todoLabels.clear();
     todoEditors.clear();
+    todoData.clear();
     
     // Load from state
     auto todoArray = audioProcessor.treeState.state.getChildWithName("TodoItems");
-    if (todoArray.isValid())
+    if (todoArray.isValid() && todoArray.getNumChildren() > 0)
     {
         for (int i = 0; i < todoArray.getNumChildren(); ++i)
         {
             auto todoItem = todoArray.getChild(i);
-            juce::String text = todoItem.getProperty("Text").toString();
-            bool checked = static_cast<bool>(todoItem.getProperty("Checked"));
-            TodoItem newItem;
-            newItem.text = text;
-            newItem.completed = checked;
-            addTodoItem(newItem);
+            if (todoItem.isValid())
+            {
+                // Get text property - handle both string and var types
+                juce::var textVar = todoItem.getProperty("Text");
+                juce::String text = textVar.isString() ? textVar.toString() : juce::String();
+                
+                // Get checked property - handle boolean conversion properly
+                juce::var checkedVar = todoItem.getProperty("Checked");
+                bool checked = false;
+                if (checkedVar.isBool())
+                    checked = static_cast<bool>(checkedVar);
+                else if (checkedVar.isInt())
+                    checked = static_cast<bool>(static_cast<int>(checkedVar));
+                else if (checkedVar.isDouble())
+                    checked = static_cast<bool>(static_cast<int>(static_cast<double>(checkedVar)));
+                else if (checkedVar.isString())
+                {
+                    // Handle string "true"/"false"
+                    juce::String str = checkedVar.toString().toLowerCase();
+                    checked = (str == "true" || str == "1");
+                }
+                
+                // Only add if text is not empty
+                if (text.isNotEmpty())
+                {
+                    TodoItem newItem;
+                    newItem.text = text;
+                    newItem.completed = checked;
+                    addTodoItem(newItem);
+                }
+            }
         }
     }
+    
+    // Ensure visual state is updated after loading all items
+    updateVisualState();
 }
 
 void NotePadAudioProcessorEditor::updateTodoItemsState()
 {
-    // Create or get the todo items array
-    juce::ValueTree todoArray = audioProcessor.treeState.state.getOrCreateChildWithName("TodoItems", nullptr);
-    todoArray.removeAllChildren(nullptr);
+    // Get the actual number of todo items from UI - they should be the same size
+    int numItems = todoItems.size();
+    if (todoLabels.size() != numItems)
+        numItems = juce::jmax(todoItems.size(), todoLabels.size());
     
-    // Store each todo item
-    for (int i = 0; i < todoItems.size(); ++i)
+    // Create a new TodoItems ValueTree with all children
+    juce::ValueTree newTodoArray("TodoItems");
+    
+    // Add each todo item to the new array
+    for (int i = 0; i < numItems; ++i)
     {
-        juce::ValueTree todoItem("TodoItem" + juce::String(i));
-        todoItem.setProperty("Text", todoLabels[i]->getText(), nullptr);
-        todoItem.setProperty("Checked", todoItems[i]->getToggleState(), nullptr);
-        todoArray.appendChild(todoItem, nullptr);
+        // Make sure we have valid UI elements for this index
+        if (i < todoLabels.size() && i < todoItems.size())
+        {
+            juce::String text = todoLabels[i]->getText().trim();
+            bool checked = todoItems[i]->getToggleState();
+            
+            // Create ValueTree node for this todo item
+            juce::ValueTree todoItem("TodoItem");
+            todoItem.setProperty("Text", text, nullptr);
+            // Explicitly save as boolean to ensure proper type
+            todoItem.setProperty("Checked", juce::var(checked), nullptr);
+            
+            // Append to the new array
+            newTodoArray.appendChild(todoItem, nullptr);
+        }
+    }
+    
+    // Now replace the old TodoItems child with the new one
+    // First, remove the old one if it exists
+    auto oldTodoArray = audioProcessor.treeState.state.getChildWithName("TodoItems");
+    if (oldTodoArray.isValid())
+    {
+        audioProcessor.treeState.state.removeChild(oldTodoArray, nullptr);
+    }
+    
+    // Add the new one
+    audioProcessor.treeState.state.appendChild(newTodoArray, nullptr);
+    
+    // Also sync todoData for consistency (used by other parts of the code)
+    todoData.clear();
+    for (int i = 0; i < numItems; ++i)
+    {
+        if (i < todoLabels.size() && i < todoItems.size())
+        {
+            TodoItem item;
+            item.text = todoLabels[i]->getText();
+            item.completed = todoItems[i]->getToggleState();
+            todoData.add(item);
+        }
     }
 }
 
 void NotePadAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& e)
 {
-    for (int i = 0; i < todoLabels.size(); ++i)
+    // Don't handle mouse events if clicking on fullscreen buttons
+    if (leftFullscreenButton != nullptr && leftFullscreenButton->isVisible() && 
+        leftFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    if (rightFullscreenButton != nullptr && rightFullscreenButton->isVisible() && 
+        rightFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    
+    // Only handle double-click in todo area (right pane)
+    int dividerX = (fullscreenMode == FullscreenMode::None) ? getWidth() / 2 : 0;
+    if (fullscreenMode == FullscreenMode::Right || (fullscreenMode == FullscreenMode::None && e.getPosition().x > dividerX))
     {
-        if (todoLabels[i]->isVisible() && todoLabels[i]->getBounds().contains(e.getPosition()))
+        for (int i = 0; i < todoLabels.size(); ++i)
         {
-            editTodoItem(i);
-            break;
+            if (todoLabels[i]->isVisible() && todoLabels[i]->getBounds().contains(e.getPosition()))
+            {
+                editTodoItem(i);
+                break;
+            }
+        }
+    }
+}
+
+void NotePadAudioProcessorEditor::mouseDown(const juce::MouseEvent& e)
+{
+    // Don't handle mouse events if clicking on fullscreen buttons
+    if (leftFullscreenButton != nullptr && leftFullscreenButton->isVisible() && 
+        leftFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    if (rightFullscreenButton != nullptr && rightFullscreenButton->isVisible() && 
+        rightFullscreenButton->getBounds().contains(e.getPosition()))
+        return;
+    
+    // Set up drag start index for todo item reordering
+    int dividerX = (fullscreenMode == FullscreenMode::None) ? getWidth() / 2 : 0;
+    if (fullscreenMode == FullscreenMode::Right || (fullscreenMode == FullscreenMode::None && e.getPosition().x > dividerX))
+    {
+        for (int i = 0; i < todoLabels.size(); ++i)
+        {
+            if (todoLabels[i]->isVisible() && todoLabels[i]->getBounds().contains(e.getPosition()))
+            {
+                dragStartIndex = i;
+                selectedIndex = i;
+                updateVisualState();
+                break;
+            }
         }
     }
 }
@@ -402,15 +739,16 @@ void NotePadAudioProcessorEditor::addTodoItem(const TodoItem& item)
     addAndMakeVisible(checkbox);
     checkbox->addListener(this);
     checkbox->setToggleState(item.completed, juce::dontSendNotification);
-    checkbox->setVisible(audioProcessor.isTodoMode());
+    checkbox->setVisible(true); // Always visible in todo area
     
     // Create label with priority and category indicators
-    auto* label = new juce::Label("", item.text);
+    auto* label = new StrikethroughLabel("", item.text);
     todoLabels.add(label);
     addAndMakeVisible(label);
     label->setColour(juce::Label::textColourId, getPriorityColour(item.priority));
-    label->setVisible(audioProcessor.isTodoMode());
+    label->setVisible(true); // Always visible in todo area
     label->addMouseListener(this, false);
+    label->setStrikethrough(item.completed);
     
     // Set initial bounds
     checkbox->setBounds(10, 10 + index * 30, 22, 20);
@@ -424,7 +762,9 @@ void NotePadAudioProcessorEditor::addTodoItem(const TodoItem& item)
 
 void NotePadAudioProcessorEditor::mouseDrag(const juce::MouseEvent& e)
 {
-    if (audioProcessor.isTodoMode() && dragStartIndex >= 0)
+    // Allow dragging in todo area (right pane)
+    int dividerX = getWidth() / 2;
+    if (e.getPosition().x > dividerX && dragStartIndex >= 0)
     {
         isDragging = true;
         int currentIndex = -1;
@@ -485,8 +825,8 @@ void NotePadAudioProcessorEditor::filterItems(const juce::String& searchText)
                       item.text.containsIgnoreCase(searchText) ||
                       item.tags.containsIgnoreCase(searchText);
                       
-        todoItems[i]->setVisible(matches && audioProcessor.isTodoMode());
-        todoLabels[i]->setVisible(matches && audioProcessor.isTodoMode());
+        todoItems[i]->setVisible(matches); // Always visible when matching
+        todoLabels[i]->setVisible(matches); // Always visible when matching
     }
     resized();
 }
@@ -499,4 +839,25 @@ juce::Colour NotePadAudioProcessorEditor::getPriorityColour(Priority p) const
         case Priority::Low: return juce::Colours::white;
         default: return juce::Colours::white;
     }
+}
+
+
+void NotePadAudioProcessorEditor::saveEditorStateToProcessor()
+{
+    // Save the text editor content to processor state
+    if (m1TextEditor != nullptr)
+    {
+        juce::String currentText = m1TextEditor->getText();
+        audioProcessor.treeState.state.setProperty("SessionText", currentText, nullptr);
+    }
+    
+    // Save all todo items to processor state
+    updateTodoItemsState();
+}
+
+void NotePadAudioProcessorEditor::toggleFullscreen(FullscreenMode mode)
+{
+    fullscreenMode = mode;
+    resized();
+    repaint();
 }
