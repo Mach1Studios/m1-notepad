@@ -13,7 +13,7 @@
 NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    m1TextEditor.reset(new StrikethroughTextEditor("new text editor"));
+    m1TextEditor.reset(new juce::TextEditor("new text editor"));
     addAndMakeVisible(m1TextEditor.get());
     m1TextEditor->addListener(this);
     m1TextEditor->setMultiLine(true);
@@ -26,28 +26,6 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     m1TextEditor->setTextToShowWhenEmpty("Keep session notes here...", juce::Colours::white);
     m1TextEditor->setText(audioProcessor.treeState.state.getProperty("SessionText")); // Grabs the string within property labeled "SessionText"
     
-    // Load strikethrough ranges if they exist
-    auto strikethroughData = audioProcessor.treeState.state.getProperty("StrikethroughRanges").toString();
-    if (strikethroughData.isNotEmpty())
-    {
-        m1TextEditor->deserializeStrikethroughRanges(strikethroughData);
-    }
-    
-    // Set up callback to save strikethrough ranges when they change
-    m1TextEditor->onStrikethroughChanged = [this]()
-    {
-        auto strikethroughData = m1TextEditor->serializeStrikethroughRanges();
-        audioProcessor.treeState.state.setProperty("StrikethroughRanges", strikethroughData, nullptr);
-        updateStrikethroughButtonState();
-    };
-    
-    // Strikethrough button setup
-    strikethroughButton.reset(new StrikethroughButton());
-    addAndMakeVisible(strikethroughButton.get());
-    strikethroughButton->addListener(this);
-    strikethroughButton->setTooltip("Toggle strikethrough on selected text");
-    strikethroughButton->setVisible(true); // Always visible in notepad area
-    
     // Fullscreen buttons setup
     leftFullscreenButton.reset(new FullscreenButton("LeftFullscreen"));
     addAndMakeVisible(leftFullscreenButton.get());
@@ -59,10 +37,6 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     rightFullscreenButton->addListener(this);
     rightFullscreenButton->setTooltip("Fullscreen todo list");
     
-    // Start timer to update button state when selection changes
-    startTimer(100); // Check every 100ms
-    
-    m1TextEditor->setBounds(0, 0, 800, 512 - 20);
     m1TextEditor->setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromFloatRGBA(40.0f, 40.0f, 40.0f, 0.10f));
     m1TextEditor->setColour(juce::TextEditor::textColourId, juce::Colour::fromFloatRGBA(251.0f, 251.0f, 251.0f, 1.0f));
     m1TextEditor->setColour(juce::TextEditor::highlightColourId, juce::Colour::fromFloatRGBA(242.0f, 255.0f, 95.0f, 0.25f));
@@ -101,11 +75,9 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
 
 NotePadAudioProcessorEditor::~NotePadAudioProcessorEditor()
 {
-    stopTimer();
     m1TextEditor = nullptr;
     todoCheckbox = nullptr;
     todoInputField = nullptr;
-    strikethroughButton = nullptr;
     leftFullscreenButton = nullptr;
     rightFullscreenButton = nullptr;
     todoItems.clear();
@@ -164,10 +136,6 @@ void NotePadAudioProcessorEditor::resized()
         setSize(w, h);
     }
     
-    int buttonHeight = 30;
-    int buttonTopSpacing = 5;
-    int buttonBottomSpacing = 5;
-    int totalButtonSpace = buttonHeight + buttonTopSpacing + buttonBottomSpacing;
     int fullscreenButtonSize = 24;
     int fullscreenButtonMargin = 5;
     
@@ -175,12 +143,6 @@ void NotePadAudioProcessorEditor::resized()
     {
         // Fullscreen left pane (notepad)
         int notepadWidth = getWidth();
-        
-        // Position strikethrough button in notepad area
-        if (strikethroughButton != nullptr)
-        {
-            strikethroughButton->setBounds(5, buttonTopSpacing, 50, buttonHeight);
-        }
         
         // Position fullscreen button in top-right corner
         if (leftFullscreenButton != nullptr)
@@ -198,10 +160,8 @@ void NotePadAudioProcessorEditor::resized()
             rightFullscreenButton->setVisible(false);
         }
         
-        // Position text editor to fill entire width
-        int editorY = totalButtonSpace;
-        int editorHeight = getHeight() - editorY;
-        m1TextEditor->setBounds(0, editorY, notepadWidth, editorHeight);
+        // Position text editor to fill entire width (no button space needed)
+        m1TextEditor->setBounds(0, 0, notepadWidth, getHeight());
         
         // Hide todo pane components
         todoInputField->setVisible(false);
@@ -223,10 +183,6 @@ void NotePadAudioProcessorEditor::resized()
         int inputFieldY = getHeight() - inputFieldHeight - 10;
         
         // Hide notepad components
-        if (strikethroughButton != nullptr)
-        {
-            strikethroughButton->setVisible(false);
-        }
         m1TextEditor->setVisible(false);
         
         // Position fullscreen button in top-right corner
@@ -292,13 +248,6 @@ void NotePadAudioProcessorEditor::resized()
         // Left pane: Notepad
         int notepadWidth = dividerX;
         
-        // Position strikethrough button in notepad area
-        if (strikethroughButton != nullptr)
-        {
-            strikethroughButton->setBounds(5, buttonTopSpacing, 50, buttonHeight);
-            strikethroughButton->setVisible(true);
-        }
-        
         // Position left fullscreen button in top-right of left pane
         if (leftFullscreenButton != nullptr)
         {
@@ -311,10 +260,8 @@ void NotePadAudioProcessorEditor::resized()
             leftFullscreenButton->toFront(false); // Bring button to front so it receives clicks
         }
         
-        // Position text editor in left pane (below button)
-        int editorY = totalButtonSpace;
-        int editorHeight = getHeight() - editorY;
-        m1TextEditor->setBounds(0, editorY, notepadWidth, editorHeight);
+        // Position text editor in left pane (no button space needed)
+        m1TextEditor->setBounds(0, 0, notepadWidth, getHeight());
         m1TextEditor->setVisible(true);
         
         // Right pane: Todo list
@@ -379,19 +326,6 @@ void NotePadAudioProcessorEditor::textEditorTextChanged (juce::TextEditor &edito
 {
     // On key changes will save editor's string to property labeled/tagged "SessionText"
     audioProcessor.treeState.state.setProperty("SessionText", editor.getText(), nullptr);
-    
-    // Save strikethrough ranges if this is the main text editor
-    if (&editor == m1TextEditor.get())
-    {
-        // Adjust strikethrough ranges when text changes
-        m1TextEditor->adjustStrikethroughRanges();
-        
-        auto strikethroughData = m1TextEditor->serializeStrikethroughRanges();
-        audioProcessor.treeState.state.setProperty("StrikethroughRanges", strikethroughData, nullptr);
-        
-        // Update button state when text changes (selection might have moved)
-        updateStrikethroughButtonState();
-    }
 }
 
 void NotePadAudioProcessorEditor::textEditorReturnKeyPressed(juce::TextEditor& editor)
@@ -586,16 +520,6 @@ void NotePadAudioProcessorEditor::buttonClicked(juce::Button* button)
         audioProcessor.setTodoMode(todoMode);
         // Both views are always visible now, so no need to toggle visibility
         resized(); // Update layout
-    }
-    else if (button == strikethroughButton.get())
-    {
-        // Handle strikethrough button click
-        auto selRange = m1TextEditor->getHighlightedRegion();
-        if (selRange.getLength() > 0)
-        {
-            m1TextEditor->toggleStrikethrough(selRange);
-            updateStrikethroughButtonState();
-        }
     }
     else if (button == leftFullscreenButton.get())
     {
@@ -841,24 +765,6 @@ juce::Colour NotePadAudioProcessorEditor::getPriorityColour(Priority p) const
     }
 }
 
-void NotePadAudioProcessorEditor::updateStrikethroughButtonState()
-{
-    if (strikethroughButton == nullptr || m1TextEditor == nullptr)
-        return;
-        
-    auto selRange = m1TextEditor->getHighlightedRegion();
-    bool hasSelection = selRange.getLength() > 0;
-    bool isStrikethrough = hasSelection && m1TextEditor->isRangeStrikethrough(selRange);
-    
-    strikethroughButton->setActive(isStrikethrough);
-    strikethroughButton->setEnabled(hasSelection && !m1TextEditor->isReadOnly());
-}
-
-void NotePadAudioProcessorEditor::timerCallback()
-{
-    // Update strikethrough button state when selection changes
-    updateStrikethroughButtonState();
-}
 
 void NotePadAudioProcessorEditor::toggleFullscreen(FullscreenMode mode)
 {
