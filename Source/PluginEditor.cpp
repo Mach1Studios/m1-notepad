@@ -23,6 +23,7 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     m1TextEditor->setCaretVisible(true);
     m1TextEditor->setPopupMenuEnabled(true);
     m1TextEditor->setTabKeyUsedAsCharacter(true);
+    m1TextEditor->setWantsKeyboardFocus(true);
     m1TextEditor->setTextToShowWhenEmpty("Keep session notes here...", juce::Colours::white);
     // Load saved text from state - convert to string safely
     juce::var sessionTextVar = audioProcessor.treeState.state.getProperty("SessionText");
@@ -63,6 +64,7 @@ NotePadAudioProcessorEditor::NotePadAudioProcessorEditor (NotePadAudioProcessor&
     todoInputField->setScrollbarsShown(false);
     todoInputField->setCaretVisible(true);
     todoInputField->setPopupMenuEnabled(true);
+    todoInputField->setWantsKeyboardFocus(true);
     todoInputField->setTextToShowWhenEmpty("Type a new todo and press Enter...", juce::Colours::white);
     todoInputField->setVisible(true); // Always visible in todo area
     todoInputField->setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromFloatRGBA(40.0f, 40.0f, 40.0f, 0.10f));
@@ -390,6 +392,7 @@ void NotePadAudioProcessorEditor::editTodoItem(int index)
             todoEditors[index]->addListener(this);
             todoEditors[index]->setMultiLine(false);
             todoEditors[index]->setReturnKeyStartsNewLine(false);
+            todoEditors[index]->setWantsKeyboardFocus(true);
             todoEditors[index]->setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromFloatRGBA(40.0f, 40.0f, 40.0f, 0.10f));
             todoEditors[index]->setColour(juce::TextEditor::textColourId, juce::Colour::fromFloatRGBA(251.0f, 251.0f, 251.0f, 1.0f));
         }
